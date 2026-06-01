@@ -310,7 +310,19 @@ async function showLobby(){
 
 async function loadRooms(){
   const snap=await window._get(window._ref(window._db,'rooms'));
-  allRooms=snap.exists()?snap.val():{};
+  allRooms={};
+  if(snap.exists()){
+    const raw=snap.val();
+    // Data is stored as rooms/roomId/meta — normalise it
+    Object.entries(raw).forEach(([roomId, roomNode])=>{
+      if(roomNode && roomNode.meta){
+        allRooms[roomId]=roomNode.meta;
+      } else if(roomNode && roomNode.name){
+        // flat structure fallback
+        allRooms[roomId]=roomNode;
+      }
+    });
+  }
   renderLobby();
 }
 
