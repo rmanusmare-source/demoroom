@@ -624,6 +624,10 @@ async function getAIResponse(charIdx){
 
   const systemPrompt=`You are ${char.name}. ${char.desc||char.archetype}.
 ${vibeContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
+People in this room:
+- RJ: 38 year old male
+- Dee: 33 year old female
+
 Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
   try{
