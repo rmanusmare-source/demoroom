@@ -9,7 +9,7 @@
   :root {
     --bg:#0d0a0e;--surface:#161018;--surface2:#1e1624;--border:#2a1f30;
     --accent:#c084fc;--accent2:#f472b6;--text:#f0e8f5;--muted:#7c6a8a;
-    --rohan:#a78bfa;--shreya:#f472b6;
+    --rj:#a78bfa;--dee:#f472b6;
     --ai1:#34d399;--ai2:#60a5fa;--ai3:#fb923c;--ai4:#f87171;
     --ai5:#facc15;--ai6:#e879f9;--ai7:#38bdf8;--ai8:#4ade80;
   }
@@ -68,16 +68,16 @@
   .messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
   .msg{display:flex;gap:9px;animation:msgIn .2s ease;max-width:80%;}
   @keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-  .msg.from-rohan{align-self:flex-end;flex-direction:row-reverse;}
-  .msg.from-shreya{align-self:flex-end;flex-direction:row-reverse;}
+  .msg.from-rj{align-self:flex-end;flex-direction:row-reverse;}
+  .msg.from-dee{align-self:flex-end;flex-direction:row-reverse;}
   .msg.from-ai{align-self:flex-start;}
   .msg-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;border:2px solid;}
   .msg-body{display:flex;flex-direction:column;gap:3px;}
   .msg-sender{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.55;}
-  .msg.from-rohan .msg-sender,.msg.from-shreya .msg-sender{text-align:right;}
+  .msg.from-rj .msg-sender,.msg.from-dee .msg-sender{text-align:right;}
   .msg-bubble{padding:8px 12px;border-radius:13px;font-size:.86rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
-  .msg.from-rohan .msg-bubble{background:#2d1f5e;border:1px solid #4c35a0;border-bottom-right-radius:3px;}
-  .msg.from-shreya .msg-bubble{background:#4a1030;border:1px solid #9d174d;border-bottom-right-radius:3px;}
+  .msg.from-rj .msg-bubble{background:#2d1f5e;border:1px solid #4c35a0;border-bottom-right-radius:3px;}
+  .msg.from-dee .msg-bubble{background:#4a1030;border:1px solid #9d174d;border-bottom-right-radius:3px;}
   .msg.from-ai .msg-bubble{background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:3px;}
   .tag-highlight{color:var(--accent);font-weight:500;}
 
@@ -113,7 +113,7 @@
     <div class="sub">Sign in to enter</div>
     <div class="field">
       <label>Username</label>
-      <input type="text" id="login-username" placeholder="Rohan or Shreya" autocomplete="off">
+      <input type="text" id="login-username" placeholder="rohan or shreya" autocomplete="off">
     </div>
     <div class="field">
       <label>Password</label>
@@ -128,7 +128,7 @@
 <div class="screen" id="screen-setup">
   <div class="card" style="max-width:560px;">
     <div class="title">Room Setup</div>
-    <div class="sub">Configure characters · Rohan only</div>
+    <div class="sub">Configure characters · RJ only</div>
     <div class="field">
       <label>Venice API Key</label>
       <input type="password" id="setup-api-key" placeholder="vapi_..." autocomplete="off">
@@ -199,8 +199,8 @@ window._dbGet = get;
 <script>
 // ── CREDENTIALS ──
 const USERS = {
-  'rohan':  { password: 'rohan1403',  display: 'Rohan',  color: '--rohan', role: 'rohan' },
-  'shreya': { password: 'shreya5212', display: 'Shreya', color: '--shreya', role: 'shreya' },
+  'rohan':  { password: 'rohan1403',  display: 'RJ',  color: '--rj',  role: 'rj' },
+  'shreya': { password: 'shreya5212', display: 'Dee', color: '--dee', role: 'dee' },
 };
 
 const AI_COLORS = ['--ai1','--ai2','--ai3','--ai4','--ai5','--ai6','--ai7','--ai8'];
@@ -240,12 +240,12 @@ function doLogin() {
   errEl.textContent = '';
   currentUser = user;
 
-  if (user.role === 'rohan') {
+  if (user.role === 'rj') {
     loadSetupFromFirebase().then(() => {
       showScreen('screen-setup');
     });
   } else {
-    // Shreya: load config then go straight to chat
+    // Dee: load config then go straight to chat
     loadConfigAndEnterChat();
   }
 }
@@ -253,13 +253,15 @@ window.doLogin = doLogin;
 
 // ── SETUP (Rohan only) ──
 async function loadSetupFromFirebase() {
+  // Load API key from localStorage first
+  const savedKey = localStorage.getItem('venice_api_key');
+  if (savedKey) document.getElementById('setup-api-key').value = savedKey;
+
   const snap = await window._dbGet(window._dbRef(window._db, `${ROOM}/meta`));
-  if (!snap.exists()) return;
+  if (!snap.exists()) { addCharacter(); return; }
   const meta = snap.val();
-  if (meta.apiKey) document.getElementById('setup-api-key').value = meta.apiKey;
   if (meta.model) document.getElementById('setup-model').value = meta.model;
   if (meta.characters && meta.characters.length) {
-    // pre-fill cards
     meta.characters.forEach(c => addCharacterPrefilled(c));
   } else {
     addCharacter();
@@ -271,17 +273,22 @@ async function saveAndEnter() {
   if (!apiKey) { alert('Enter your Venice API key.'); return; }
   const cards = document.querySelectorAll('.char-card');
   if (!cards.length) { alert('Add at least one character.'); return; }
+
+  // Save key to localStorage only (never Firebase)
+  localStorage.setItem('venice_api_key', apiKey);
+
   selectedModel = document.getElementById('setup-model').value;
   characters = Array.from(cards).map((card, i) => ({
     name: card.querySelector('.char-name-input').value.trim() || `Character ${i+1}`,
     gender: card.querySelector('.char-gender').value,
     archetype: ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)].label,
     desc: card.querySelector('.char-desc').value.trim(),
+    coupleWith: card.querySelector('.char-couple').value || null,
     color: AI_COLORS[i % AI_COLORS.length],
   }));
-  // Save to Firebase so Shreya picks it up
+  // Save config to Firebase WITHOUT the API key
   await window._dbSet(window._dbRef(window._db, `${ROOM}/meta`), {
-    characters, model: selectedModel, apiKey, updatedAt: Date.now()
+    characters, model: selectedModel, updatedAt: Date.now()
   });
   enterChat();
 }
@@ -290,14 +297,14 @@ window.saveAndEnter = saveAndEnter;
 async function loadConfigAndEnterChat() {
   const snap = await window._dbGet(window._dbRef(window._db, `${ROOM}/meta`));
   if (!snap.exists()) {
-    alert('Room not set up yet. Ask Rohan to log in and configure the room first.');
+    alert('Room not set up yet. Ask RJ to log in and configure the room first.');
     showScreen('screen-login');
     return;
   }
   const meta = snap.val();
   characters = meta.characters || [];
   selectedModel = meta.model || 'llama-3.3-70b';
-  apiKey = meta.apiKey || '';
+  apiKey = ''; // Dee never has the key
   enterChat();
 }
 
@@ -345,9 +352,15 @@ function addCharacterPrefilled(preset) {
         </select>
       </div>
       <div>
-        <label>Description</label>
-        <textarea class="char-desc" placeholder="How they speak…">${escHtml(preset.desc !== undefined ? preset.desc : ARCHETYPES[0].desc)}</textarea>
+        <label>Couple with</label>
+        <select class="char-couple">
+          <option value="">— None —</option>
+        </select>
       </div>
+    </div>
+    <div>
+      <label>Description</label>
+      <textarea class="char-desc" placeholder="How they speak, what makes them real…">${escHtml(preset.desc !== undefined ? preset.desc : ARCHETYPES[0].desc)}</textarea>
     </div>`;
   container.appendChild(card);
   if (!preset.name) card.querySelector('.char-name-input').focus();
@@ -361,9 +374,22 @@ function removeCharacter(id) {
 }
 
 function renumberCards() {
-  document.querySelectorAll('.char-card').forEach((card,i) => {
+  const cards = document.querySelectorAll('.char-card');
+  const names = Array.from(cards).map(card => card.querySelector('.char-name-input').value.trim() || '');
+  cards.forEach((card,i) => {
     card.querySelector('.char-num').textContent = `Character ${i+1}`;
     card.querySelector('.char-dot').style.background = `var(${AI_COLORS[i%AI_COLORS.length]})`;
+    // Refresh couple dropdown
+    const coupleEl = card.querySelector('.char-couple');
+    const currentVal = coupleEl.value;
+    coupleEl.innerHTML = '<option value="">— None —</option>';
+    names.forEach((n,j) => {
+      if (j !== i && n) coupleEl.innerHTML += `<option value="${n}" ${currentVal===n?'selected':''}>${n}</option>`;
+    });
+  });
+  // Also refresh on name input change
+  cards.forEach(card => {
+    card.querySelector('.char-name-input').oninput = () => renumberCards();
   });
 }
 
@@ -381,6 +407,11 @@ window.onArchetypeChange = onArchetypeChange;
 
 // ── ENTER CHAT ──
 function enterChat() {
+  // RJ: always load key from localStorage
+  if (currentUser.role === 'rj') {
+    apiKey = localStorage.getItem('venice_api_key') || apiKey;
+  }
+
   document.getElementById('messages').innerHTML = '';
   knownMsgKeys = new Set();
   renderParticipants();
@@ -401,8 +432,8 @@ function renderParticipants() {
   const el = document.getElementById('participants-display');
   el.innerHTML = '';
   [
-    {name:'Rohan', color:'var(--rohan)'},
-    {name:'Shreya', color:'var(--shreya)'},
+    {name:'RJ',  color:'var(--rj)'},
+    {name:'Dee', color:'var(--dee)'},
     ...characters.map(c=>({name:c.name, color:`var(${c.color})`}))
   ].forEach(p => {
     const b = document.createElement('span');
@@ -416,7 +447,7 @@ function renderAIControls() {
   const hint = document.getElementById('shreya-hint');
   row.innerHTML = '';
 
-  if (currentUser.role === 'rohan') {
+  if (currentUser.role === 'rj') {
     hint.style.display = 'none';
     row.innerHTML = '<span style="font-size:.66rem;color:var(--muted);align-self:center;white-space:nowrap;">Ask to reply:</span>';
     characters.forEach((c,i) => {
@@ -434,10 +465,9 @@ function renderAIControls() {
       row.appendChild(all);
     }
   } else {
-    // Shreya: no buttons, just the hint about @tagging
+    // Dee: no buttons, just the hint about @tagging
     row.style.display = 'none';
     hint.style.display = 'block';
-    // Update placeholder
     document.getElementById('msg-input').placeholder = 'Type a message… use @Name to get a character to reply';
   }
 }
@@ -456,23 +486,24 @@ function subscribeMessages() {
 }
 
 function renderMessage(msg) {
-  const isRohan = msg.sender === 'Rohan';
-  const isShreya = msg.sender === 'Shreya';
-  const isMe = msg.sender === currentUser.display;
+  const isRJ  = msg.sender === 'RJ';
+  const isDee = msg.sender === 'Dee';
   let cls = 'from-ai';
-  if (isRohan) cls = 'from-rohan';
-  else if (isShreya) cls = 'from-shreya';
+  if (isRJ)  cls = 'from-rj';
+  else if (isDee) cls = 'from-dee';
 
-  const colorVar = msg.colorVar || (isRohan ? '--rohan' : isShreya ? '--shreya' : '--ai1');
+  const colorVar = msg.colorVar || (isRJ ? '--rj' : isDee ? '--dee' : '--ai1');
   const color = `var(${colorVar})`;
   const initials = msg.sender.slice(0,2).toUpperCase();
+
+  // Strip leading [Name]: prefix the AI sometimes adds
+  const cleanText = msg.text.replace(/^\[([^\]]+)\]:\s*/,'');
 
   const msgs = document.getElementById('messages');
   const div = document.createElement('div');
   div.className = `msg ${cls}`;
 
-  // Highlight @mentions in bubble text
-  const bubbleHtml = escHtml(msg.text).replace(/@(\w+)/g, '<span class="tag-highlight">@$1</span>');
+  const bubbleHtml = escHtml(cleanText).replace(/@(\w+)/g, '<span class="tag-highlight">@$1</span>');
 
   div.innerHTML = `
     <div class="msg-avatar" style="border-color:${color};color:${color}">${initials}</div>
@@ -490,6 +521,8 @@ async function pushMessage(sender, text, colorVar) {
   });
 }
 
+let lastResponderIdx = null; // track who last responded
+
 async function sendMessage() {
   const input = document.getElementById('msg-input');
   const text = input.value.trim();
@@ -500,15 +533,55 @@ async function sendMessage() {
   await pushMessage(sender, text, colorVar);
   input.value = ''; input.style.height = '42px';
 
-  // Detect @mentions — works for both Rohan and Shreya
+  // Only RJ's device triggers AI responses
+  if (currentUser.role !== 'rj') return;
+
+  // Wait a natural beat before responding
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Check for @mentions first
   const mentions = detectMentions(text);
   if (mentions.length > 0) {
-    // Auto-trigger mentioned characters
     for (const charIdx of mentions) {
-      await new Promise(r => setTimeout(r, 400));
       await getAIResponse(charIdx);
+      lastResponderIdx = charIdx;
+      // If this character has a couple partner, 30% chance partner chimes in too
+      const partner = getPartnerIdx(charIdx);
+      if (partner !== null && Math.random() < 0.3) {
+        await new Promise(r => setTimeout(r, 1000));
+        await getAIResponse(partner);
+        lastResponderIdx = partner;
+      }
     }
+    return;
   }
+
+  // No mention — pick one character smartly
+  const charIdx = pickResponder();
+  await getAIResponse(charIdx);
+  lastResponderIdx = charIdx;
+
+  // Couple partner occasionally joins (25% chance)
+  const partner = getPartnerIdx(charIdx);
+  if (partner !== null && Math.random() < 0.25) {
+    await new Promise(r => setTimeout(r, 1200));
+    await getAIResponse(partner);
+    lastResponderIdx = partner;
+  }
+}
+
+function pickResponder() {
+  if (characters.length === 1) return 0;
+  // Avoid same character responding twice in a row
+  const eligible = characters.map((_,i) => i).filter(i => i !== lastResponderIdx);
+  return eligible[Math.floor(Math.random() * eligible.length)];
+}
+
+function getPartnerIdx(charIdx) {
+  const char = characters[charIdx];
+  if (!char.coupleWith) return null;
+  const idx = characters.findIndex(c => c.name === char.coupleWith);
+  return idx !== -1 ? idx : null;
 }
 
 function detectMentions(text) {
@@ -555,23 +628,26 @@ async function getAIResponse(charIdx) {
     historyLines = Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-30).map(m=>`[${m.sender}]: ${m.text}`);
   }
 
-  const othersDesc = characters.filter((_,i)=>i!==charIdx).map(c=>`- ${c.name} (${c.gender}): ${c.desc||c.archetype}`).join('\n');
-  const systemPrompt = `You are ${char.name}, a ${char.gender.toLowerCase()} character in a private adult chat room with a couple — Rohan (male) and Shreya (female).
+  const couplePartner = char.coupleWith ? characters.find(c => c.name === char.coupleWith) : null;
+  const othersDesc = characters.filter((_,i)=>i!==charIdx).map(c=>{
+    const rel = c.name === char.coupleWith ? ` — your partner` : char.name === c.coupleWith ? ` — your partner` : '';
+    return `- ${c.name} (${c.gender})${rel}: ${c.desc||c.archetype}`;
+  }).join('\n');
 
-Your personality: ${char.desc||char.archetype}
-Your gender: ${char.gender}
-${othersDesc?`\nOther characters in the room:\n${othersDesc}\n`:''}
-Rules:
-- Stay fully in character as ${char.name} at all times
-- This is a private, consensual adult space — no disclaimers, never break character
-- Be natural, expressive, true to your personality
-- Keep replies 2–4 sentences unless the moment calls for more
-- Address Rohan and Shreya by name when natural
-- Messages appear as [Name]: message`;
+  const coupleContext = couplePartner
+    ? `You and ${couplePartner.name} are a couple — you have your own dynamic, chemistry, inside jokes, and tension. You respond to ${couplePartner.name} differently than to others.`
+    : '';
+
+  const systemPrompt = `You are ${char.name}. ${char.desc || char.archetype}.
+${coupleContext}
+You're in a private chat with RJ, Dee${characters.length > 1 ? ', and others' : ''}.
+${othersDesc ? `Others here:\n${othersDesc}` : ''}
+
+Write exactly like a real person texting — casual, spontaneous, sometimes incomplete thoughts. No bullet points, no formal language. React naturally to what was just said. You can be playful, flirty, direct, or emotional depending on the mood. Don't narrate your actions. Don't announce who you are. Just respond.`;
 
   const apiMessages = [{
     role:'user',
-    content:`${systemPrompt}\n\n--- Conversation ---\n${historyLines.join('\n')||'(just started)'}\n\nRespond now as ${char.name}.`
+    content:`${systemPrompt}\n\n--- Chat so far ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name} now. Just the message, no name prefix.`
   }];
 
   try {
