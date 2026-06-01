@@ -206,6 +206,7 @@ select option{background:#1e1624;}
     <div class="header-right">
       <div class="conn-dot"></div>
       <div class="who-badge" id="who-badge"></div>
+      <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
       <button class="btn-back" onclick="backToLobby()">← Rooms</button>
     </div>
   </div>
@@ -237,6 +238,8 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 window._db=db; window._ref=ref; window._set=set; window._push=push;
 window._onValue=onValue; window._get=get; window._remove=remove;
+// Restore session after Firebase is ready
+setTimeout(()=>{ if(window._onFirebaseReady) window._onFirebaseReady(); }, 100);
 </script>
 
 <script>
@@ -281,6 +284,7 @@ function doLogin(){
   if(!user||user.password!==p){errEl.textContent='Invalid username or password.';return;}
   errEl.textContent='';
   currentUser=user;
+  localStorage.setItem('session_user',u);
   if(user.role==='rj') apiKey=localStorage.getItem('venice_api_key')||'';
   showLobby();
 }
@@ -289,11 +293,23 @@ window.doLogin=doLogin;
 function doLogout(){
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
   currentUser=null;currentRoomId=null;currentRoomData=null;
+  localStorage.removeItem('session_user');
   document.getElementById('login-username').value='';
   document.getElementById('login-password').value='';
   showScreen('screen-login');
 }
 window.doLogout=doLogout;
+
+// ── AUTO RESTORE SESSION ON PAGE LOAD ──
+async function restoreSession(){
+  const saved=localStorage.getItem('session_user');
+  if(!saved||!USERS[saved]) return;
+  currentUser=USERS[saved];
+  if(currentUser.role==='rj') apiKey=localStorage.getItem('venice_api_key')||'';
+  await showLobby();
+}
+// Called after Firebase is ready
+window._onFirebaseReady=restoreSession;
 
 // ── LOBBY ──
 async function showLobby(){
@@ -412,6 +428,8 @@ async function saveRoom(){
 
   localStorage.setItem('venice_api_key',key);
   apiKey=key;
+  // Store key in Firebase so Dee's device can use it for AI responses
+  await window._set(window._ref(window._db,'config/apiKey'),key);
 
   const model=document.getElementById('room-model').value;
   const chars=Array.from(cards).map((card,i)=>({
@@ -440,7 +458,14 @@ async function enterRoom(roomId){
   currentRoomData=room;
   characters=room.characters||[];
   selectedModel=room.model||'llama-3.3-70b';
-  if(currentUser.role==='rj') apiKey=localStorage.getItem('venice_api_key')||'';
+
+  // Load API key — RJ from localStorage, Dee from Firebase config
+  if(currentUser.role==='rj'){
+    apiKey=localStorage.getItem('venice_api_key')||'';
+  } else {
+    const snap=await window._get(window._ref(window._db,'config/apiKey'));
+    apiKey=snap.exists()?snap.val():'';
+  }
 
   // Chat header
   document.getElementById('chat-room-name').textContent=room.name||'Room';
@@ -461,6 +486,9 @@ async function enterRoom(roomId){
   // AI controls
   renderAIControls();
 
+  // Show clear history button only for RJ
+  document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
+
   // Messages
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
@@ -473,6 +501,16 @@ async function enterRoom(roomId){
   addDivider(`${room.name} · Messages sync in real time`);
 }
 window.enterRoom=enterRoom;
+
+async function clearRoomHistory(){
+  if(!confirm(`Clear all chat history in "${currentRoomData?.name}"? Cannot be undone.`)) return;
+  await window._remove(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  document.getElementById('messages').innerHTML='';
+  knownMsgKeys=new Set();
+  lastResponderIdx=null;
+  addDivider('Chat history cleared · Fresh start');
+}
+window.clearRoomHistory=clearRoomHistory;
 
 function backToLobby(){
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
@@ -544,8 +582,8 @@ async function sendMessage(){
   if(!text||isLoading) return;
   await pushMessage(currentUser.display,text,currentUser.color);
   input.value='';input.style.height='42px';
-  if(currentUser.role!=='rj') return;
-  await new Promise(r=>setTimeout(r,1500));
+  if(!apiKey) return; // no key available, skip AI
+  await new Promise(r=>setTimeout(r,1000));
   const mentions=detectMentions(text);
   if(mentions.length>0){
     for(const idx of mentions){
