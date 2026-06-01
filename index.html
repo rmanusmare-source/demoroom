@@ -442,7 +442,7 @@ async function saveRoom(){
   }));
 
   const roomId=editingRoomId||(name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now());
-  const roomData={name,vibe,model,characters:chars,createdAt:Date.now()};
+  const roomData={name,vibe,model,characters:chars,apiKey:key,createdAt:Date.now()};
   await window._set(window._ref(window._db,`rooms/${roomId}/meta`),roomData);
   allRooms[roomId]=roomData;
   editingRoomId=null;
@@ -459,12 +459,19 @@ async function enterRoom(roomId){
   characters=room.characters||[];
   selectedModel=room.model||'llama-3.3-70b';
 
-  // Load API key — RJ from localStorage, Dee from Firebase config
+  // Load API key — RJ from localStorage, Dee from Firebase (config node or room meta)
   if(currentUser.role==='rj'){
     apiKey=localStorage.getItem('venice_api_key')||'';
   } else {
+    // Try config/apiKey first, fall back to room meta
     const snap=await window._get(window._ref(window._db,'config/apiKey'));
-    apiKey=snap.exists()?snap.val():'';
+    if(snap.exists()&&snap.val()){
+      apiKey=snap.val();
+    } else {
+      // Fallback: read from room meta directly
+      const roomSnap=await window._get(window._ref(window._db,`rooms/${roomId}/meta`));
+      apiKey=roomSnap.exists()?roomSnap.val().apiKey||'':'';
+    }
   }
 
   // Chat header
