@@ -233,13 +233,13 @@ select option{background:#1e1624;}
   </div>
 
   <!-- DIRECTOR PANEL (hidden from Dee, only RJ sees) -->
-  <div id="director-panel" style="display:none;position:fixed;bottom:0;right:0;width:100%;max-width:350px;height:60vh;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;overflow-y:auto;z-index:500;box-shadow:0 -4px 20px rgba(0,0,0,.3);">
+  <div id="director-panel" style="display:none;position:fixed;bottom:0;right:0;width:100%;max-width:380px;height:70vh;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;overflow-y:auto;z-index:500;box-shadow:0 -4px 20px rgba(0,0,0,.3);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-size:.9rem;font-weight:500;color:var(--text);">Director Controls</div>
       <button style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;" onclick="toggleDirectorPanel()">✕</button>
     </div>
     
-    <div style="margin-bottom:14px;">
+    <div style="margin-bottom:12px;">
       <label style="display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Temperature</label>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="range" id="temp-slider" min="1" max="4" value="2" style="flex:1;cursor:pointer;" onchange="setTemperature(this.value)">
@@ -247,10 +247,17 @@ select option{background:#1e1624;}
       </div>
     </div>
 
-    <div>
-      <label style="display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Scene / Vibe</label>
-      <textarea id="director-scene-input" style="width:100%;height:100px;resize:none;border-radius:8px;padding:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.8rem;line-height:1.4;" placeholder="Describe the setting and mood..."></textarea>
-      <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:.85rem;" onclick="updateDirectorScene()">Update Scene</button>
+    <div style="margin-bottom:12px;">
+      <button class="btn btn-primary" style="width:100%;font-size:.85rem;padding:8px;" onclick="suggestSpicyScene()">✨ Suggest Spicy Moment</button>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Scene Suggestion</div>
+      <div id="scene-suggestion" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.85rem;color:var(--text);line-height:1.5;min-height:80px;margin-bottom:8px;font-style:italic;">No suggestion yet. Click the button above.</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" style="flex:1;padding:6px;font-size:.8rem;" onclick="acceptSceneSuggestion()">✓ Accept</button>
+        <button class="btn btn-secondary" style="flex:1;padding:6px;font-size:.8rem;" onclick="suggestSpicyScene()">↻ Refresh</button>
+      </div>
     </div>
   </div>
 </div>
@@ -602,6 +609,8 @@ function renderAIControls(){
 }
 
 // ── TEMPERATURE & DIRECTOR CONTROLS (RJ only) ──
+let currentSuggestion='';
+
 function setTemperature(val){
   currentTemperature=parseInt(val);
   const labels=['','Casual','Flirty','Spicy','Explicit'];
@@ -614,24 +623,80 @@ function toggleDirectorPanel(){
   const panel=document.getElementById('director-panel');
   if(panel.style.display==='none'){
     panel.style.display='block';
-    document.getElementById('director-scene-input').value=currentRoomData?.vibe||'';
   } else {
     panel.style.display='none';
   }
 }
 
-function updateDirectorScene(){
-  const newVibe=document.getElementById('director-scene-input').value.trim();
-  if(newVibe){
-    currentRoomData.vibe=newVibe;
-    // Silently update Firebase (Dee doesn't see this)
-    window._set(window._ref(window._db,`rooms/${currentRoomId}/meta/vibe`),newVibe).catch(e=>console.error('Scene update failed',e));
+async function suggestSpicyScene(){
+  const suggestionDiv=document.getElementById('scene-suggestion');
+  suggestionDiv.textContent='Generating spicy moment...';
+  
+  // Get last 10 messages for context
+  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  let recentChat='';
+  if(snap.exists()){
+    const msgs=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-10);
+    recentChat=msgs.map(m=>`[${m.sender}]: ${m.text}`).join('\n');
   }
+  
+  const tempLabels=['','Casual','Flirty','Spicy','Explicit'];
+  const charNames=characters.map(c=>c.name).join(', ');
+  
+  const prompt=`You are a romantic/spicy storytelling AI. Based on this conversation between characters ${charNames}, suggest ONE brief, spicy narrative action or moment that naturally fits the flow and makes the conversation more interesting and sensual.
+
+Current conversation:
+${recentChat}
+
+Current temperature level: ${tempLabels[currentTemperature]}
+
+Respond with ONLY a short narrative action (1-2 sentences, like stage directions), starting with an asterisk. Example:
+*B leans in closer, their hand brushing against A's arm as the tension builds.*
+
+Keep it tasteful but definitely spicy and flirty.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':apiKey||'sk-dummy','Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-opus-4-20250514',
+        max_tokens:100,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    
+    if(res.ok){
+      const data=await res.json();
+      const text=data.content?.[0]?.text||'Failed to generate';
+      currentSuggestion=text.replace(/^\*/,'').trim();
+      suggestionDiv.textContent=`*${currentSuggestion}`;
+    } else {
+      suggestionDiv.textContent='API error. Try again.';
+    }
+  } catch(e){
+    suggestionDiv.textContent=`Error: ${e.message}`;
+  }
+}
+
+async function acceptSceneSuggestion(){
+  if(!currentSuggestion){alert('No suggestion to accept.');return;}
+  // Add as narrative action to chat
+  await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{
+    sender:'SCENE',
+    text:currentSuggestion,
+    type:'scene',
+    ts:Date.now()
+  });
+  // Reset
+  document.getElementById('scene-suggestion').textContent='Suggestion accepted! Generate another.';
+  currentSuggestion='';
 }
 
 window.setTemperature=setTemperature;
 window.toggleDirectorPanel=toggleDirectorPanel;
-window.updateDirectorScene=updateDirectorScene;
+window.suggestSpicyScene=suggestSpicyScene;
+window.acceptSceneSuggestion=acceptSceneSuggestion;
 
 // ── MESSAGES ──
 function subscribeMessages(roomId){
@@ -680,8 +745,17 @@ function subscribeMessages(roomId){
 }
 
 function renderMessage(msg){
-  // Skip scene cards - they're only for RJ, not visible in chat
-  if(msg.type==='scene') return;
+  const msgs=document.getElementById('messages');
+  
+  // Scene cards appear as italic narrative actions
+  if(msg.type==='scene'){
+    const card=document.createElement('div');
+    card.style.cssText='text-align:center;padding:12px 20px;margin:8px 0;color:var(--muted);font-style:italic;font-size:.88rem;line-height:1.6;';
+    card.textContent=`*${msg.text}*`;
+    msgs.appendChild(card);
+    msgs.scrollTop=msgs.scrollHeight;
+    return;
+  }
   
   const isRJ=msg.sender==='RJ'; const isDee=msg.sender==='Dee';
   let cls='from-ai';
@@ -690,7 +764,6 @@ function renderMessage(msg){
   const color=`var(${colorVar})`;
   const cleanText=msg.text.replace(/^\[([^\]]+)\]:\s*/,'');
   const bubbleHtml=escHtml(cleanText).replace(/@(\w+)/g,'<span class="tag-highlight">@$1</span>');
-  const msgs=document.getElementById('messages');
   const div=document.createElement('div');div.className=`msg ${cls}`;
   div.innerHTML=`<div class="msg-avatar" style="border-color:${color};color:${color}">${msg.sender.slice(0,2).toUpperCase()}</div><div class="msg-body"><div class="msg-sender" style="color:${color}">${escHtml(msg.sender)}</div><div class="msg-bubble">${bubbleHtml}</div></div>`;
   msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
