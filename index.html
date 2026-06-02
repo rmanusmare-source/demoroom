@@ -122,6 +122,8 @@ select option{background:#1e1624;}
 .dee-hint{font-size:.68rem;color:var(--muted);margin-top:7px;font-style:italic;}
 
 .divider-msg{text-align:center;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;padding:2px 0;}
+.scene-card{text-align:center;padding:14px 20px;margin:8px 0;border-left:2px solid var(--accent);border-right:2px solid var(--accent);background:rgba(192,132,252,.05);border-radius:8px;font-style:italic;font-size:.88rem;color:var(--muted);line-height:1.6;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
 .error-msg{background:#3b1c1c;border:1px solid #7f1d1d;border-radius:9px;padding:7px 11px;font-size:.78rem;color:#fca5a5;}
 .info-toast{background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.25);border-radius:9px;padding:7px 11px;font-size:.78rem;color:var(--accent);text-align:center;}
 </style>
@@ -217,27 +219,39 @@ select option{background:#1e1624;}
       <button class="btn-back" onclick="backToLobby()">← Rooms</button>
     </div>
   </div>
-  <div class="scenario-display" id="scenario-display">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div id="scenario-text" style="flex:1;font-size:.9rem;line-height:1.5;color:var(--muted);">Loading scenario...</div>
-      <button class="btn-icon" id="btn-edit-scenario" onclick="toggleScenarioEdit()" style="flex-shrink:0;">✎</button>
-    </div>
-    <div id="scenario-editor" style="display:none;margin-top:10px;gap:8px;">
-      <textarea id="scenario-input" style="width:100%;height:80px;resize:none;border-radius:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.87rem;" placeholder="Describe the scene..."></textarea>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="saveScenario()">Save</button>
-        <button class="btn btn-secondary" style="flex:1;padding:8px;" onclick="toggleScenarioEdit()">Cancel</button>
-      </div>
-    </div>
-  </div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
     <div class="input-row">
       <textarea id="msg-input" placeholder="Type a message…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="send-btn" onclick="sendMessage()">↑</button>
     </div>
-    <div class="ai-row" id="ai-row"></div>
-    <div class="dee-hint" id="dee-hint" style="display:none;">Tip: use @Name to get a character to reply</div>
+    <div id="rj-controls" style="display:none;gap:8px;margin-top:8px;">
+      <button class="btn-icon" style="border-color:var(--accent);color:var(--accent);" onclick="toggleDirectorPanel()">🎬 Director</button>
+      <div class="ai-row" id="ai-row"></div>
+    </div>
+    <div class="dee-hint" id="dee-hint" style="display:none;">Tip: use @Name to get a reply</div>
+  </div>
+
+  <!-- DIRECTOR PANEL (hidden from Dee, only RJ sees) -->
+  <div id="director-panel" style="display:none;position:fixed;bottom:0;right:0;width:100%;max-width:350px;height:60vh;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;overflow-y:auto;z-index:500;box-shadow:0 -4px 20px rgba(0,0,0,.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:.9rem;font-weight:500;color:var(--text);">Director Controls</div>
+      <button style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;" onclick="toggleDirectorPanel()">✕</button>
+    </div>
+    
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Temperature</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" id="temp-slider" min="1" max="4" value="2" style="flex:1;cursor:pointer;" onchange="setTemperature(this.value)">
+        <span id="temp-label" style="font-size:.75rem;color:var(--accent);min-width:60px;">Flirty</span>
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Scene / Vibe</label>
+      <textarea id="director-scene-input" style="width:100%;height:100px;resize:none;border-radius:8px;padding:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.8rem;line-height:1.4;" placeholder="Describe the setting and mood..."></textarea>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:.85rem;" onclick="updateDirectorScene()">Update Scene</button>
+    </div>
   </div>
 </div>
 
@@ -514,6 +528,13 @@ async function enterRoom(roomId){
   // AI controls
   renderAIControls();
 
+  // Load director panel for RJ
+  if(currentUser.role==='rj'){
+    document.getElementById('director-scene-input').value=currentRoomData?.vibe||'';
+    document.getElementById('temp-slider').value=currentTemperature;
+    setTemperature(currentTemperature);
+  }
+
   // Show clear history button only for RJ
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
 
@@ -552,9 +573,14 @@ window.backToLobby=backToLobby;
 function renderAIControls(){
   const row=document.getElementById('ai-row');
   const hint=document.getElementById('dee-hint');
+  const rjControls=document.getElementById('rj-controls');
+  
   row.innerHTML='';
+  
   if(currentUser.role==='rj'){
+    // RJ: show director panel toggle and character buttons
     hint.style.display='none';
+    rjControls.style.display='flex';
     row.innerHTML='<span style="font-size:.66rem;color:var(--muted);align-self:center;white-space:nowrap;">Ask to reply:</span>';
     characters.forEach((c,i)=>{
       const btn=document.createElement('button');
@@ -569,13 +595,16 @@ function renderAIControls(){
       row.appendChild(all);
     }
   } else {
+    // Dee: hide all controls
+    rjControls.style.display='none';
     row.style.display='none';
     hint.style.display='block';
-    document.getElementById('msg-input').placeholder='Type a message… use @Name to get a reply';
+    hint.textContent='Tip: use @Name to get a reply';
+    document.getElementById('msg-input').placeholder='Type a message…';
   }
 }
 
-// ── TEMPERATURE & SCENARIO ──
+// ── TEMPERATURE & DIRECTOR CONTROLS (RJ only) ──
 function setTemperature(val){
   currentTemperature=parseInt(val);
   const labels=['','Casual','Flirty','Spicy','Explicit'];
@@ -584,38 +613,28 @@ function setTemperature(val){
   document.getElementById('temp-label').style.color=colors[currentTemperature];
 }
 
-function displayScenario(){
-  const text=currentRoomData?.vibe||'No scenario set.';
-  document.getElementById('scenario-text').textContent=text;
-}
-
-function toggleScenarioEdit(){
-  const editor=document.getElementById('scenario-editor');
-  const input=document.getElementById('scenario-input');
-  if(editor.style.display==='none'){
-    editor.style.display='block';
-    input.value=currentRoomData?.vibe||'';
-    input.focus();
+function toggleDirectorPanel(){
+  const panel=document.getElementById('director-panel');
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    document.getElementById('director-scene-input').value=currentRoomData?.vibe||'';
   } else {
-    editor.style.display='none';
+    panel.style.display='none';
   }
 }
 
-async function saveScenario(){
-  const newVibe=document.getElementById('scenario-input').value.trim();
+function updateDirectorScene(){
+  const newVibe=document.getElementById('director-scene-input').value.trim();
   if(newVibe){
     currentRoomData.vibe=newVibe;
-    // Update Firebase
-    const roomData={...currentRoomData,vibe:newVibe,updatedAt:Date.now()};
-    await window._set(window._ref(window._db,`rooms/${currentRoomId}/meta`),roomData);
-    displayScenario();
-    toggleScenarioEdit();
+    // Silently update Firebase (Dee doesn't see this)
+    window._set(window._ref(window._db,`rooms/${currentRoomId}/meta/vibe`),newVibe).catch(e=>console.error('Scene update failed',e));
   }
 }
 
 window.setTemperature=setTemperature;
-window.toggleScenarioEdit=toggleScenarioEdit;
-window.saveScenario=saveScenario;
+window.toggleDirectorPanel=toggleDirectorPanel;
+window.updateDirectorScene=updateDirectorScene;
 
 // ── MESSAGES ──
 function subscribeMessages(roomId){
@@ -664,6 +683,9 @@ function subscribeMessages(roomId){
 }
 
 function renderMessage(msg){
+  // Skip scene cards - they're only for RJ, not visible in chat
+  if(msg.type==='scene') return;
+  
   const isRJ=msg.sender==='RJ'; const isDee=msg.sender==='Dee';
   let cls='from-ai';
   if(isRJ) cls='from-rj'; else if(isDee) cls='from-dee';
