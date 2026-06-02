@@ -622,6 +622,7 @@ function setTemperature(val){
 }
 
 function toggleDirectorPanel(){
+  if(currentUser.role!=='rj') return; // Only RJ can toggle
   const panel=document.getElementById('director-panel');
   if(panel.style.display==='none'){
     panel.style.display='block';
@@ -631,6 +632,7 @@ function toggleDirectorPanel(){
 }
 
 async function suggestSpicyScene(){
+  if(!apiKey){alert('No API key set.');return;}
   const suggestionDiv=document.getElementById('scene-suggestion');
   suggestionDiv.textContent='Generating spicy moment...';
   
@@ -639,7 +641,7 @@ async function suggestSpicyScene(){
   let recentChat='';
   if(snap.exists()){
     const msgs=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-10);
-    recentChat=msgs.map(m=>`[${m.sender}]: ${m.text}`).join('\n');
+    recentChat=msgs.map(m=>m.type==='scene'?`[SCENE]: ${m.text}`:`[${m.sender}]: ${m.text}`).join('\n');
   }
   
   const tempLabels=['','Casual','Flirty','Spicy','Explicit'];
@@ -647,20 +649,24 @@ async function suggestSpicyScene(){
   
   const prompt=`You are a romantic/spicy storytelling AI. Based on this conversation between characters ${charNames}, suggest ONE brief, spicy narrative action or moment that naturally fits the flow and makes the conversation more interesting and sensual.
 
-Current conversation:
-${recentChat}
+Recent conversation:
+${recentChat||'(conversation just started)'}
 
 Current temperature level: ${tempLabels[currentTemperature]}
 
-Respond with ONLY a short narrative action (1-2 sentences, like stage directions), starting with an asterisk. Example:
-*B leans in closer, their hand brushing against A's arm as the tension builds.*
+Respond with ONLY a short narrative action (1-2 sentences, like stage directions in italics). Example output:
+B leans in closer, their hand brushing against A's arm as tension builds between them.
 
-Keep it tasteful but definitely spicy and flirty.`;
+Keep it tasteful but definitely spicy and flirty. No asterisks, no quotes.`;
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'x-api-key':apiKey||'sk-dummy','Content-Type':'application/json'},
+      headers:{
+        'Authorization':`Bearer ${apiKey}`,
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01'
+      },
       body:JSON.stringify({
         model:'claude-opus-4-20250514',
         max_tokens:100,
@@ -670,14 +676,17 @@ Keep it tasteful but definitely spicy and flirty.`;
     
     if(res.ok){
       const data=await res.json();
-      const text=data.content?.[0]?.text||'Failed to generate';
-      currentSuggestion=text.replace(/^\*/,'').trim();
-      suggestionDiv.textContent=`*${currentSuggestion}`;
+      const text=data.content?.[0]?.text?.trim()||'Failed to generate';
+      currentSuggestion=text.replace(/^\*|\*$/g,'').trim();
+      suggestionDiv.textContent=`*${currentSuggestion}*`;
     } else {
-      suggestionDiv.textContent='API error. Try again.';
+      const err=await res.text();
+      suggestionDiv.textContent=`API error ${res.status}. Check API key.`;
+      console.error('API error:',err);
     }
   } catch(e){
     suggestionDiv.textContent=`Error: ${e.message}`;
+    console.error(e);
   }
 }
 
@@ -699,6 +708,43 @@ window.setTemperature=setTemperature;
 window.toggleDirectorPanel=toggleDirectorPanel;
 window.suggestSpicyScene=suggestSpicyScene;
 window.acceptSceneSuggestion=acceptSceneSuggestion;
+
+async function generateAutoScene(){
+  if(!apiKey||isLoading) return;
+  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  if(!snap.exists()) return;
+  
+  const msgs=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-8);
+  const recentChat=msgs.map(m=>m.type==='scene'?`[SCENE]: ${m.text}`:`[${m.sender}]: ${m.text}`).join('\n');
+  const charNames=characters.map(c=>c.name).join(', ');
+  const tempLabels=['','Casual','Flirty','Spicy','Explicit'];
+  
+  const prompt=`Based on this conversation between ${charNames}, generate ONE subtle, spicy narrative moment that adds tension or intimacy. Keep it brief (1 sentence max).
+
+${recentChat}
+
+Temperature: ${tempLabels[currentTemperature]}
+
+Output only the scene description, no asterisks or quotes. Make it feel natural and organic to the conversation.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json','anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-opus-4-20250514',max_tokens:80,messages:[{role:'user',content:prompt}]})
+    });
+    if(res.ok){
+      const data=await res.json();
+      const scene=data.content?.[0]?.text?.trim();
+      if(scene){
+        await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{sender:'SCENE',text:scene,type:'scene',ts:Date.now()});
+      }
+    }
+  } catch(e){
+    // Fail silently - this is background auto-generation
+  }
+}
+window.generateAutoScene=generateAutoScene;
 
 // ── MESSAGES ──
 function subscribeMessages(roomId){
@@ -864,7 +910,12 @@ Adjust your intensity and language to match the current temperature level. Write
     });
     typingEl.remove();
     if(!res.ok){const err=await res.json().catch(()=>({}));addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);}
-    else{const data=await res.json();const reply=data.choices?.[0]?.message?.content?.trim()||'…';await pushMessage(char.name,reply,char.color);}
+    else{const data=await res.json();const reply=data.choices?.[0]?.message?.content?.trim()||'…';await pushMessage(char.name,reply,char.color);
+      // 30% chance to auto-generate a scene description after AI response
+      if(currentUser.role==='rj' && apiKey && Math.random()<0.3){
+        setTimeout(()=>generateAutoScene(),1200);
+      }
+    }
   }catch(e){typingEl.remove();addLocalError(`Network error: ${e.message}`);}
   isLoading=false;setAIButtonsDisabled(false);
 }
