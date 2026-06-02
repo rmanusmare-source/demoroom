@@ -542,7 +542,9 @@ async function enterRoom(roomId){
       setTemperature(currentTemperature);
     }
   } else {
-    // Completely hide director panel from Dee
+    // Dee: completely hide all RJ controls
+    const rjControls=document.getElementById('rj-controls');
+    if(rjControls) rjControls.style.display='none !important';
     document.getElementById('director-panel').style.display='none !important';
   }
 
@@ -589,7 +591,7 @@ function renderAIControls(){
   if(currentUser.role==='rj'){
     // RJ: show director panel toggle and character buttons
     hint.style.display='none';
-    rjControls.style.display='flex';
+    if(rjControls) rjControls.style.display='flex';
     row.innerHTML='<span style="font-size:.66rem;color:var(--muted);align-self:center;white-space:nowrap;">Ask to reply:</span>';
     characters.forEach((c,i)=>{
       const btn=document.createElement('button');
@@ -604,8 +606,8 @@ function renderAIControls(){
       row.appendChild(all);
     }
   } else {
-    // Dee: hide all controls
-    rjControls.style.display='none';
+    // Dee: hide all RJ controls
+    if(rjControls) rjControls.style.display='none !important';
     row.style.display='none';
     hint.style.display='block';
     hint.textContent='Tip: use @Name to get a reply';
@@ -914,8 +916,8 @@ Adjust your intensity and language to match the current temperature level. Write
     typingEl.remove();
     if(!res.ok){const err=await res.json().catch(()=>({}));addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);}
     else{const data=await res.json();const reply=data.choices?.[0]?.message?.content?.trim()||'…';await pushMessage(char.name,reply,char.color);
-      // 30% chance to auto-generate a scene description after AI response
-      if(currentUser.role==='rj' && apiKey && Math.random()<0.3){
+      // 60% chance to auto-generate a scene description after AI response
+      if(currentUser.role==='rj' && apiKey && Math.random()<0.6){
         setTimeout(()=>generateAutoScene(),1200);
       }
     }
