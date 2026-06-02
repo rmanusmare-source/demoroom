@@ -536,9 +536,11 @@ async function enterRoom(roomId){
 
   // Load director panel for RJ
   if(currentUser.role==='rj'){
-    document.getElementById('director-scene-input').value=currentRoomData?.vibe||'';
-    document.getElementById('temp-slider').value=currentTemperature;
-    setTemperature(currentTemperature);
+    const slider=document.getElementById('temp-slider');
+    if(slider){
+      slider.value=currentTemperature;
+      setTemperature(currentTemperature);
+    }
   }
 
   // Show clear history button only for RJ
