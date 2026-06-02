@@ -77,7 +77,6 @@ select option{background:#1e1624;}
 
 /* CHAT */
 .chat-header{padding:11px 15px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
-.temp-control{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);}
 .chat-room-name{font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;}
 .scenario-display{background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 15px;font-size:.88rem;line-height:1.5;}
 .participants{display:flex;gap:4px;flex-wrap:wrap;flex:1;justify-content:center;}
@@ -206,11 +205,6 @@ select option{background:#1e1624;}
 <div id="chat-screen">
   <div class="chat-header">
     <div class="chat-room-name" id="chat-room-name">Room</div>
-    <div class="temp-control">
-      <span style="font-size:.7rem;color:var(--muted);margin-right:6px;">Temp:</span>
-      <input type="range" id="temp-slider" min="1" max="4" value="2" style="width:80px;cursor:pointer;" onchange="setTemperature(this.value)">
-      <span id="temp-label" style="font-size:.75rem;color:var(--accent);margin-left:6px;min-width:50px;">Flirty</span>
-    </div>
     <div class="participants" id="participants-display"></div>
     <div class="header-right">
       <div class="conn-dot"></div>
