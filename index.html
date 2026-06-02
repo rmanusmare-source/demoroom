@@ -379,16 +379,15 @@ async function loadRooms(){
 
 function renderLobby(){
   const grid=document.getElementById('rooms-grid');
-  const empty=document.getElementById('rooms-empty');
   const keys=Object.keys(allRooms);
+  grid.innerHTML='';
   if(!keys.length){
-    empty.style.display='block';
-    grid.innerHTML='';
+    const empty=document.createElement('div');
+    empty.className='room-empty';
+    empty.textContent='No rooms yet. RJ can create one below.';
     grid.appendChild(empty);
     return;
   }
-  empty.style.display='none';
-  grid.innerHTML='';
   keys.forEach(roomId=>{
     const room=allRooms[roomId];
     const card=document.createElement('div');
@@ -538,8 +537,6 @@ async function enterRoom(roomId){
   // Show clear history button only for RJ
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
 
-  // Display scenario
-  displayScenario();
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
