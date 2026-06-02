@@ -546,6 +546,9 @@ async function enterRoom(roomId){
     const rjControls=document.getElementById('rj-controls');
     if(rjControls) rjControls.style.display='none !important';
     document.getElementById('director-panel').style.display='none !important';
+    // Hide temp slider from Dee in header
+    const tempControl=document.querySelector('.temp-control');
+    if(tempControl) tempControl.style.display='none !important';
   }
 
   // Show clear history button only for RJ
