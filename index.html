@@ -77,7 +77,9 @@ select option{background:#1e1624;}
 
 /* CHAT */
 .chat-header{padding:11px 15px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
+.temp-control{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);}
 .chat-room-name{font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;}
+.scenario-display{background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 15px;font-size:.88rem;line-height:1.5;}
 .participants{display:flex;gap:4px;flex-wrap:wrap;flex:1;justify-content:center;}
 .pbadge{font-size:.65rem;padding:2px 7px;border-radius:20px;border:1px solid;opacity:.7;}
 .header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -202,12 +204,30 @@ select option{background:#1e1624;}
 <div id="chat-screen">
   <div class="chat-header">
     <div class="chat-room-name" id="chat-room-name">Room</div>
+    <div class="temp-control">
+      <span style="font-size:.7rem;color:var(--muted);margin-right:6px;">Temp:</span>
+      <input type="range" id="temp-slider" min="1" max="4" value="2" style="width:80px;cursor:pointer;" onchange="setTemperature(this.value)">
+      <span id="temp-label" style="font-size:.75rem;color:var(--accent);margin-left:6px;min-width:50px;">Flirty</span>
+    </div>
     <div class="participants" id="participants-display"></div>
     <div class="header-right">
       <div class="conn-dot"></div>
       <div class="who-badge" id="who-badge"></div>
       <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
       <button class="btn-back" onclick="backToLobby()">← Rooms</button>
+    </div>
+  </div>
+  <div class="scenario-display" id="scenario-display">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div id="scenario-text" style="flex:1;font-size:.9rem;line-height:1.5;color:var(--muted);">Loading scenario...</div>
+      <button class="btn-icon" id="btn-edit-scenario" onclick="toggleScenarioEdit()" style="flex-shrink:0;">✎</button>
+    </div>
+    <div id="scenario-editor" style="display:none;margin-top:10px;gap:8px;">
+      <textarea id="scenario-input" style="width:100%;height:80px;resize:none;border-radius:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.87rem;" placeholder="Describe the scene..."></textarea>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="saveScenario()">Save</button>
+        <button class="btn btn-secondary" style="flex:1;padding:8px;" onclick="toggleScenarioEdit()">Cancel</button>
+      </div>
     </div>
   </div>
   <div class="messages" id="messages"></div>
@@ -264,6 +284,7 @@ const GENDERS=['Male','Female','Non-binary'];
 let currentUser=null;
 let currentRoomId=null;
 let currentRoomData=null;
+let currentTemperature=2; // 1=Casual, 2=Flirty, 3=Spicy, 4=Explicit
 let allRooms={};
 let characters=[];
 let apiKey='';
@@ -496,7 +517,8 @@ async function enterRoom(roomId){
   // Show clear history button only for RJ
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
 
-  // Messages
+  // Display scenario
+  displayScenario();
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
@@ -553,14 +575,91 @@ function renderAIControls(){
   }
 }
 
+// ── TEMPERATURE & SCENARIO ──
+function setTemperature(val){
+  currentTemperature=parseInt(val);
+  const labels=['','Casual','Flirty','Spicy','Explicit'];
+  const colors=['','#7c3aed','#f472b6','#f87171','#dc2626'];
+  document.getElementById('temp-label').textContent=labels[currentTemperature];
+  document.getElementById('temp-label').style.color=colors[currentTemperature];
+}
+
+function displayScenario(){
+  const text=currentRoomData?.vibe||'No scenario set.';
+  document.getElementById('scenario-text').textContent=text;
+}
+
+function toggleScenarioEdit(){
+  const editor=document.getElementById('scenario-editor');
+  const input=document.getElementById('scenario-input');
+  if(editor.style.display==='none'){
+    editor.style.display='block';
+    input.value=currentRoomData?.vibe||'';
+    input.focus();
+  } else {
+    editor.style.display='none';
+  }
+}
+
+async function saveScenario(){
+  const newVibe=document.getElementById('scenario-input').value.trim();
+  if(newVibe){
+    currentRoomData.vibe=newVibe;
+    // Update Firebase
+    const roomData={...currentRoomData,vibe:newVibe,updatedAt:Date.now()};
+    await window._set(window._ref(window._db,`rooms/${currentRoomId}/meta`),roomData);
+    displayScenario();
+    toggleScenarioEdit();
+  }
+}
+
+window.setTemperature=setTemperature;
+window.toggleScenarioEdit=toggleScenarioEdit;
+window.saveScenario=saveScenario;
+
 // ── MESSAGES ──
 function subscribeMessages(roomId){
   const msgsRef=window._ref(window._db,`rooms/${roomId}/messages`);
+  let initialLoad=true;
   msgUnsubscribe=window._onValue(msgsRef,snap=>{
-    if(!snap.exists()) return;
-    Object.entries(snap.val()).sort((a,b)=>a[1].ts-b[1].ts).forEach(([key,msg])=>{
-      if(!knownMsgKeys.has(key)){knownMsgKeys.add(key);renderMessage(msg);}
+    if(!snap.exists()){initialLoad=false;return;}
+    const data=snap.val();
+    const entries=Object.entries(data).sort((a,b)=>a[1].ts-b[1].ts);
+    let latestNewMsg=null;
+    entries.forEach(([key,msg])=>{
+      if(!knownMsgKeys.has(key)){
+        knownMsgKeys.add(key);
+        renderMessage(msg);
+        if(!initialLoad) latestNewMsg={key,msg};
+      }
     });
+    initialLoad=false;
+
+    // RJ's device handles ALL AI responses — including when Dee sends
+    if(latestNewMsg && currentUser.role==='rj' && apiKey){
+      const sender=latestNewMsg.msg.sender;
+      // Only auto-respond to human messages (RJ or Dee), not AI replies
+      const isHuman=(sender==='RJ'||sender==='Dee');
+      if(isHuman && !isLoading){
+        const text=latestNewMsg.msg.text;
+        setTimeout(async()=>{
+          if(isLoading) return;
+          const mentions=detectMentions(text);
+          if(mentions.length>0){
+            for(const idx of mentions){
+              await getAIResponse(idx);lastResponderIdx=idx;
+              const p=getPartnerIdx(idx);
+              if(p!==null&&Math.random()<0.3){await new Promise(r=>setTimeout(r,1000));await getAIResponse(p);lastResponderIdx=p;}
+            }
+          } else {
+            const idx=pickResponder();
+            await getAIResponse(idx);lastResponderIdx=idx;
+            const p=getPartnerIdx(idx);
+            if(p!==null&&Math.random()<0.25){await new Promise(r=>setTimeout(r,1200));await getAIResponse(p);lastResponderIdx=p;}
+          }
+        },1000);
+      }
+    }
   });
 }
 
@@ -582,30 +681,14 @@ async function pushMessage(sender,text,colorVar){
   await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{sender,text,colorVar:colorVar||null,ts:Date.now()});
 }
 
-// ── SEND + AUTO RESPOND ──
+// ── SEND ──
 async function sendMessage(){
   const input=document.getElementById('msg-input');
   const text=input.value.trim();
   if(!text||isLoading) return;
   await pushMessage(currentUser.display,text,currentUser.color);
   input.value='';input.style.height='42px';
-  if(!apiKey) return; // no key available, skip AI
-  await new Promise(r=>setTimeout(r,1000));
-  const mentions=detectMentions(text);
-  if(mentions.length>0){
-    for(const idx of mentions){
-      await getAIResponse(idx);
-      lastResponderIdx=idx;
-      const partner=getPartnerIdx(idx);
-      if(partner!==null&&Math.random()<0.3){await new Promise(r=>setTimeout(r,1000));await getAIResponse(partner);lastResponderIdx=partner;}
-    }
-    return;
-  }
-  const idx=pickResponder();
-  await getAIResponse(idx);
-  lastResponderIdx=idx;
-  const partner=getPartnerIdx(idx);
-  if(partner!==null&&Math.random()<0.25){await new Promise(r=>setTimeout(r,1200));await getAIResponse(partner);lastResponderIdx=partner;}
+  // AI response is handled by RJ's device via the Firebase listener
 }
 
 function detectMentions(text){
@@ -660,6 +743,10 @@ async function getAIResponse(charIdx){
 
   const room=currentRoomData||{};
   const vibeContext=room.vibe?`Setting: ${room.vibe}\n`:'';
+  
+  const tempLabels=['','Casual - friendly, light flirting','Flirty - suggestive, playful, sensual','Spicy - explicit, uninhibited, passionate','Explicit - raw, intense, no holds barred'];
+  const tempContext=`Current intensity level: ${tempLabels[currentTemperature]}\n`;
+  
   const othersDesc=characters.filter((_,i)=>i!==charIdx).map(c=>{
     const rel=c.name===char.coupleWith||char.name===c.coupleWith?' (your partner)':'';
     return `- ${c.name} (${c.gender})${rel}: ${c.desc||c.archetype}`;
@@ -668,12 +755,12 @@ async function getAIResponse(charIdx){
   const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple — you have your own chemistry, tension, and inside dynamic.\n`:'';
 
   const systemPrompt=`You are ${char.name}. ${char.desc||char.archetype}.
-${vibeContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
+${vibeContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
 People in this room:
 - RJ: 38 year old male
 - Dee: 33 year old female
 
-Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
+Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
   try{
     const res=await fetch('https://api.venice.ai/api/v1/chat/completions',{
