@@ -393,12 +393,18 @@ async function loadRooms(){
 
 function renderLobby(){
   const grid=document.getElementById('rooms-grid');
-  const keys=Object.keys(allRooms);
+  let keys=Object.keys(allRooms);
+  
+  // Filter rooms for Dee - only show rooms where she has access
+  if(currentUser.role==='dee'){
+    keys=keys.filter(roomId=>allRooms[roomId].deeCanAccess!==false);
+  }
+  
   grid.innerHTML='';
   if(!keys.length){
     const empty=document.createElement('div');
     empty.className='room-empty';
-    empty.textContent='No rooms yet. RJ can create one below.';
+    empty.textContent=currentUser.role==='dee'?'No rooms available for you yet.':'No rooms yet. RJ can create one below.';
     grid.appendChild(empty);
     return;
   }
@@ -408,6 +414,14 @@ function renderLobby(){
     card.className='room-card';
     const chars=room.characters||[];
     const castHtml=chars.map((c,i)=>`<span class="cast-pill" style="border-color:var(${AI_COLORS[i%AI_COLORS.length]});color:var(${AI_COLORS[i%AI_COLORS.length]})">${escHtml(c.name)} · ${c.gender}</span>`).join('');
+    
+    // Show Dee access status only for RJ
+    let deeStatus='';
+    if(currentUser.role==='rj'){
+      const hasAccess=room.deeCanAccess!==false;
+      deeStatus=`<span class="cast-pill" style="border-color:${hasAccess?'#34d399':'#7f1d1d'};color:${hasAccess?'#34d399':'#f87171'};">${hasAccess?'✓ Dee allowed':'✕ Dee blocked'}</span>`;
+    }
+    
     const editBtn=currentUser.role==='rj'?`<button class="btn-icon" onclick="editRoom('${roomId}',event)">✎ Edit</button><button class="btn-icon danger" onclick="deleteRoom('${roomId}',event)">✕</button>`:'';
     card.innerHTML=`
       <div class="room-card-top">
@@ -415,7 +429,7 @@ function renderLobby(){
         <div class="room-actions">${editBtn}</div>
       </div>
       <div class="room-vibe">${escHtml(room.vibe||'')}</div>
-      <div class="room-cast">${castHtml}</div>`;
+      <div class="room-cast">${castHtml}${deeStatus}</div>`;
     card.onclick=()=>enterRoom(roomId);
     grid.appendChild(card);
   });
@@ -430,6 +444,8 @@ function showCreateRoom(){
   document.getElementById('room-name-input').value='';
   document.getElementById('room-vibe-input').value='';
   document.getElementById('room-model').value='llama-3.3-70b';
+  document.getElementById('room-type').value='in-person';
+  document.getElementById('dee-access').checked=true;
   const savedKey=localStorage.getItem('venice_api_key')||'';
   document.getElementById('room-api-key').value=savedKey;
   document.getElementById('characters-container').innerHTML='';
@@ -446,6 +462,8 @@ function editRoom(roomId, e){
   document.getElementById('room-name-input').value=room.name||'';
   document.getElementById('room-vibe-input').value=room.vibe||'';
   document.getElementById('room-model').value=room.model||'llama-3.3-70b';
+  document.getElementById('room-type').value=room.roomType||'in-person';
+  document.getElementById('dee-access').checked=room.deeCanAccess!==false;
   document.getElementById('room-api-key').value=localStorage.getItem('venice_api_key')||'';
   document.getElementById('characters-container').innerHTML='';
   cardCounter=0;
@@ -503,9 +521,14 @@ window.saveRoom=saveRoom;
 
 // ── ENTER ROOM ──
 async function enterRoom(roomId){
+  const room=allRooms[roomId];
+  // Safety check - Dee blocked from entering if not allowed
+  if(currentUser.role==='dee' && room.deeCanAccess===false){
+    alert('You do not have access to this room.');
+    return;
+  }
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
   currentRoomId=roomId;
-  const room=allRooms[roomId];
   currentRoomData=room;
   characters=room.characters||[];
   selectedModel=room.model||'llama-3.3-70b';
@@ -532,10 +555,15 @@ async function enterRoom(roomId){
   badge.style.borderColor=`var(${currentUser.color})`;
   badge.style.color=`var(${currentUser.color})`;
 
-  // Participants
+  // Participants — exclude Dee if she's blocked from this room
   const pEl=document.getElementById('participants-display');
   pEl.innerHTML='';
-  [{name:'RJ',color:'var(--rj)'},{name:'Dee',color:'var(--dee)'},...characters.map(c=>({name:c.name,color:`var(${c.color})`}))].forEach(p=>{
+  const participants=[{name:'RJ',color:'var(--rj)'}];
+  if(room.deeCanAccess!==false){
+    participants.push({name:'Dee',color:'var(--dee)'});
+  }
+  characters.forEach(c=>participants.push({name:c.name,color:`var(${c.color})`}));
+  participants.forEach(p=>{
     const b=document.createElement('span');
     b.className='pbadge';b.style.borderColor=p.color;b.style.color=p.color;b.textContent=p.name;
     pEl.appendChild(b);
@@ -915,8 +943,7 @@ async function getAIResponse(charIdx){
   const systemPrompt=`You are ${char.name}. ${char.desc||char.archetype}.
 ${vibeContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
 People in this room:
-- RJ: 38 year old male
-- Dee: 33 year old female
+- RJ: 38 year old male${room.deeCanAccess!==false?'\n- Dee: 33 year old female':''}
 
 Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
