@@ -266,6 +266,16 @@ select option{background:#1e1624;}
         <button class="btn btn-secondary" style="flex:1;padding:6px;font-size:.8rem;" onclick="suggestSpicyScene()">↻ Refresh</button>
       </div>
     </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Custom Scene / Direction</div>
+      <textarea id="custom-scene-input" placeholder="Type a scene description OR direction for AI (e.g. 'Andy gets jealous and tries to dominate the conversation')" style="width:100%;height:80px;resize:none;border-radius:8px;padding:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;line-height:1.4;margin-bottom:8px;"></textarea>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" style="flex:1;padding:6px;font-size:.8rem;" onclick="addCustomScene()">📝 Add Scene to Chat</button>
+        <button class="btn btn-secondary" style="flex:1;padding:6px;font-size:.8rem;" onclick="setAIDirection()">🎯 Direct AI</button>
+      </div>
+      <div id="active-direction" style="display:none;margin-top:8px;padding:8px;background:rgba(192,132,252,.1);border:1px solid var(--accent);border-radius:6px;font-size:.75rem;color:var(--accent);font-style:italic;"></div>
+    </div>
   </div>
 </div>
 
@@ -658,6 +668,7 @@ function renderAIControls(){
 
 // ── TEMPERATURE & DIRECTOR CONTROLS (RJ only) ──
 let currentSuggestion='';
+let aiDirection=''; // Hidden direction RJ gives to AI
 
 function setTemperature(val){
   currentTemperature=parseInt(val);
@@ -668,13 +679,33 @@ function setTemperature(val){
 }
 
 function toggleDirectorPanel(){
-  if(currentUser.role!=='rj') return; // Only RJ can toggle
+  if(currentUser.role!=='rj') return;
   const panel=document.getElementById('director-panel');
-  if(panel.style.display==='none'){
-    panel.style.display='block';
-  } else {
-    panel.style.display='none';
-  }
+  panel.style.display=panel.style.display==='none'?'block':'none';
+}
+
+async function addCustomScene(){
+  const text=document.getElementById('custom-scene-input').value.trim();
+  if(!text){alert('Type something first.');return;}
+  await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{
+    sender:'SCENE',text,type:'scene',ts:Date.now()
+  });
+  document.getElementById('custom-scene-input').value='';
+}
+
+function setAIDirection(){
+  const text=document.getElementById('custom-scene-input').value.trim();
+  if(!text){alert('Type direction first.');return;}
+  aiDirection=text;
+  const indicator=document.getElementById('active-direction');
+  indicator.style.display='block';
+  indicator.textContent=`🎯 Active direction: ${text}`;
+  document.getElementById('custom-scene-input').value='';
+}
+
+function clearAIDirection(){
+  aiDirection='';
+  document.getElementById('active-direction').style.display='none';
 }
 
 async function suggestSpicyScene(){
@@ -754,6 +785,9 @@ window.setTemperature=setTemperature;
 window.toggleDirectorPanel=toggleDirectorPanel;
 window.suggestSpicyScene=suggestSpicyScene;
 window.acceptSceneSuggestion=acceptSceneSuggestion;
+window.addCustomScene=addCustomScene;
+window.setAIDirection=setAIDirection;
+window.clearAIDirection=clearAIDirection;
 
 async function generateAutoScene(){
   if(!apiKey||isLoading) return;
@@ -928,23 +962,30 @@ async function getAIResponse(charIdx){
   }
 
   const room=currentRoomData||{};
+  const isOnline=room.roomType==='online';
   const vibeContext=room.vibe?`Setting: ${room.vibe}\n`:'';
+  const onlineContext=isOnline?'This is an ONLINE text conversation (messaging/chatting from different locations). Do NOT describe physical actions, body movements, or face-to-face scene details. People are texting each other. Keep responses conversational like real messaging.\n':'';
   
   const tempLabels=['','Casual - friendly, light flirting','Flirty - suggestive, playful, sensual','Spicy - explicit, uninhibited, passionate','Explicit - raw, intense, no holds barred'];
   const tempContext=`Current intensity level: ${tempLabels[currentTemperature]}\n`;
   
+  // Inject hidden AI direction if set (only RJ knows about this)
+  const directionContext=aiDirection?`\n[DIRECTOR'S INSTRUCTION - keep this in mind for your response]: ${aiDirection}\n`:'';
+  
   const othersDesc=characters.filter((_,i)=>i!==charIdx).map(c=>{
     const rel=c.name===char.coupleWith||char.name===c.coupleWith?' (your partner)':'';
-    return `- ${c.name} (${c.gender})${rel}: ${c.desc||c.archetype}`;
+    const ageStr=c.age?`, ${c.age} years old`:'';
+    return `- ${c.name} (${c.gender}${ageStr})${rel}: ${c.desc||c.archetype}`;
   }).join('\n');
   const couplePartner=char.coupleWith?characters.find(c=>c.name===char.coupleWith):null;
   const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple — you have your own chemistry, tension, and inside dynamic.\n`:'';
+  const charAgeStr=char.age?` You are ${char.age} years old.`:'';
 
-  const systemPrompt=`You are ${char.name}. ${char.desc||char.archetype}.
-${vibeContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
+  const systemPrompt=`You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
+${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
 People in this room:
 - RJ: 38 year old male${room.deeCanAccess!==false?'\n- Dee: 33 year old female':''}
-
+${directionContext}
 Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
   try{
@@ -956,8 +997,9 @@ Adjust your intensity and language to match the current temperature level. Write
     typingEl.remove();
     if(!res.ok){const err=await res.json().catch(()=>({}));addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);}
     else{const data=await res.json();const reply=data.choices?.[0]?.message?.content?.trim()||'…';await pushMessage(char.name,reply,char.color);
-      // 60% chance to auto-generate a scene description after AI response
-      if(currentUser.role==='rj' && apiKey && Math.random()<0.6){
+      // Skip auto-scene generation for online rooms (texting/video, no physical scenes)
+      const isOnlineRoom=currentRoomData?.roomType==='online';
+      if(!isOnlineRoom && currentUser.role==='rj' && apiKey && Math.random()<0.6){
         setTimeout(()=>generateAutoScene(),1200);
       }
     }
