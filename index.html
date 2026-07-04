@@ -1036,14 +1036,15 @@ async function getAIResponse(charIdx){
   // Inject briefings for this character (stacked, all active)
   const charBriefings=getBriefingsForChar(char.name);
   const briefingContext=charBriefings.length
-    ?`\n[DIRECTOR'S PRIVATE INSTRUCTIONS — follow these without Dee knowing]:\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n`
+    ?`PRIVATE INSTRUCTIONS FROM DIRECTOR (follow these naturally, Dee must not know):\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n\n`
     :'';
 
-  const systemPrompt=`You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
+  // Briefings go at TOP of system prompt so AI prioritises them
+  const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
 ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
 People in this room:
 - RJ: 38 year old male${room.deeCanAccess!==false?'\n- Dee: 33 year old female':''}
-${briefingContext}
+
 Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
   try{
@@ -1058,14 +1059,14 @@ Adjust your intensity and language to match the current temperature level. Write
       const data=await res.json();
       const reply=data.choices?.[0]?.message?.content?.trim()||'…';
       
-      // Typing delay proportional to word count
-      // Average person types ~40 words/minute = ~1.5 seconds per word
+      // Typing delay: 300ms per word, 2s min, 6s max + variance
+      // Feels natural — short replies are quick, long ones take time
       const wordCount=reply.trim().split(/\s+/).length;
-      const baseDelay=Math.min(Math.max(wordCount * 1500, 2000), 9000); // 2s min, 9s max
-      const variance=(Math.random()-0.5)*800; // ±400ms variance
+      const baseDelay=Math.min(Math.max(wordCount*300,2000),6000);
+      const variance=(Math.random()-0.5)*600;
       const typingDelay=Math.round(baseDelay+variance);
       
-      // Show typing indicator for calculated delay
+      // Show typing indicator for the delay
       const newTypingEl=addLocalTyping(char);
       await new Promise(r=>setTimeout(r,typingDelay));
       newTypingEl.remove();
