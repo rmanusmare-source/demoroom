@@ -877,15 +877,8 @@ function subscribeMessages(roomId){
 function renderMessage(msg){
   const msgs=document.getElementById('messages');
   
-  // Scene cards appear as italic narrative actions
-  if(msg.type==='scene'){
-    const card=document.createElement('div');
-    card.style.cssText='text-align:center;padding:12px 20px;margin:8px 0;color:var(--muted);font-style:italic;font-size:.88rem;line-height:1.6;';
-    card.textContent=`*${msg.text}*`;
-    msgs.appendChild(card);
-    msgs.scrollTop=msgs.scrollHeight;
-    return;
-  }
+  // Skip scene cards entirely — no commentary in chat
+  if(msg.type==='scene') return;
   
   const isRJ=msg.sender==='RJ'; const isDee=msg.sender==='Dee';
   let cls='from-ai';
@@ -1002,25 +995,19 @@ Adjust your intensity and language to match the current temperature level. Write
       const data=await res.json();
       const reply=data.choices?.[0]?.message?.content?.trim()||'…';
       
-      // Calculate human-like typing delay based on reply length
-      // Average person types 40-60 WPM = ~5 chars/second
-      // Add random variance so it never feels mechanical
-      const charCount=reply.length;
-      const baseDelay=Math.min(Math.max(charCount * 45, 1500), 8000); // 1.5s min, 8s max
-      const variance=(Math.random()-0.5) * 1000; // ±500ms random variance
+      // Typing delay proportional to word count
+      // Average person types ~40 words/minute = ~1.5 seconds per word
+      const wordCount=reply.trim().split(/\s+/).length;
+      const baseDelay=Math.min(Math.max(wordCount * 1500, 2000), 9000); // 2s min, 9s max
+      const variance=(Math.random()-0.5)*800; // ±400ms variance
       const typingDelay=Math.round(baseDelay+variance);
       
-      // Show typing indicator for the calculated delay
+      // Show typing indicator for calculated delay
       const newTypingEl=addLocalTyping(char);
       await new Promise(r=>setTimeout(r,typingDelay));
       newTypingEl.remove();
       
       await pushMessage(char.name,reply,char.color);
-      // Skip auto-scene generation for online rooms (texting/video, no physical scenes)
-      const isOnlineRoom=currentRoomData?.roomType==='online';
-      if(!isOnlineRoom && currentUser.role==='rj' && apiKey && Math.random()<0.6){
-        setTimeout(()=>generateAutoScene(),1200);
-      }
     }
   }catch(e){typingEl.remove();addLocalError(`Network error: ${e.message}`);}
   isLoading=false;setAIButtonsDisabled(false);
