@@ -240,41 +240,42 @@ select option{background:#1e1624;}
   </div>
 
   <!-- DIRECTOR PANEL (hidden from Dee, only RJ sees) -->
-  <div id="director-panel" style="display:none;position:fixed;bottom:0;right:0;width:100%;max-width:380px;height:70vh;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;overflow-y:auto;z-index:500;box-shadow:0 -4px 20px rgba(0,0,0,.3);" class="rj-only">>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:.9rem;font-weight:500;color:var(--text);">Director Controls</div>
-      <button style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;" onclick="toggleDirectorPanel()">✕</button>
-    </div>
+  <div id="director-panel" style="display:none;position:fixed;bottom:0;right:0;width:100%;max-width:400px;height:75vh;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);border-radius:16px 16px 0 0;z-index:500;box-shadow:0 -4px 30px rgba(0,0,0,.4);display:none;flex-direction:column;" class="rj-only">
     
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Temperature</label>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" id="temp-slider" min="1" max="4" value="2" style="flex:1;cursor:pointer;" onchange="setTemperature(this.value)">
-        <span id="temp-label" style="font-size:.75rem;color:var(--accent);min-width:60px;">Flirty</span>
+    <!-- Header -->
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div style="font-size:.9rem;font-weight:500;color:var(--text);">Briefing Room</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:1px;">Instructions are invisible to Dee</div>
+      </div>
+      <button style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:4px;" onclick="toggleDirectorPanel()">✕</button>
+    </div>
+
+    <!-- Temperature -->
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">Intensity</span>
+        <input type="range" id="temp-slider" min="1" max="4" value="2" style="flex:1;cursor:pointer;accent-color:var(--accent);" onchange="setTemperature(this.value)">
+        <span id="temp-label" style="font-size:.75rem;color:var(--accent);min-width:55px;text-align:right;">Flirty</span>
       </div>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <button class="btn btn-primary" style="width:100%;font-size:.85rem;padding:8px;" onclick="suggestSpicyScene()">✨ Suggest Spicy Moment</button>
+    <!-- Character selector + instruction input -->
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Brief a Character</div>
+      <select id="briefing-target" style="width:100%;margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;padding:7px 10px;">
+        <option value="all">Everyone</option>
+      </select>
+      <textarea id="briefing-input" placeholder="e.g. 'Be more aggressive' · 'Bring up a threesome naturally' · 'Get jealous of RJ' · 'Slow down, be romantic'" style="width:100%;height:72px;resize:none;border-radius:8px;padding:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;line-height:1.4;margin-bottom:8px;outline:none;"></textarea>
+      <button class="btn btn-primary" style="width:100%;padding:9px;font-size:.85rem;" onclick="addBriefing()">+ Add Instruction</button>
     </div>
 
-    <div style="border-top:1px solid var(--border);padding-top:12px;">
-      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Scene Suggestion</div>
-      <div id="scene-suggestion" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.85rem;color:var(--text);line-height:1.5;min-height:80px;margin-bottom:8px;font-style:italic;">No suggestion yet. Click the button above.</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" style="flex:1;padding:6px;font-size:.8rem;" onclick="acceptSceneSuggestion()">✓ Accept</button>
-        <button class="btn btn-secondary" style="flex:1;padding:6px;font-size:.8rem;" onclick="suggestSpicyScene()">↻ Refresh</button>
+    <!-- Active instructions list -->
+    <div style="flex:1;overflow-y:auto;padding:12px 16px;">
+      <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Active Instructions</div>
+      <div id="briefings-list" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:.8rem;color:var(--muted);font-style:italic;">No instructions yet. Characters will follow default behaviour.</div>
       </div>
-    </div>
-
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-      <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Custom Scene / Direction</div>
-      <textarea id="custom-scene-input" placeholder="Type a scene description OR direction for AI (e.g. 'Andy gets jealous and tries to dominate the conversation')" style="width:100%;height:80px;resize:none;border-radius:8px;padding:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;line-height:1.4;margin-bottom:8px;"></textarea>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" style="flex:1;padding:6px;font-size:.8rem;" onclick="addCustomScene()">📝 Add Scene to Chat</button>
-        <button class="btn btn-secondary" style="flex:1;padding:6px;font-size:.8rem;" onclick="setAIDirection()">🎯 Direct AI</button>
-      </div>
-      <div id="active-direction" style="display:none;margin-top:8px;padding:8px;background:rgba(192,132,252,.1);border:1px solid var(--accent);border-radius:6px;font-size:.75rem;color:var(--accent);font-style:italic;"></div>
     </div>
   </div>
 </div>
@@ -584,11 +585,11 @@ async function enterRoom(roomId){
 
   // Load director panel for RJ
   if(currentUser.role==='rj'){
+    briefings={};
     const slider=document.getElementById('temp-slider');
-    if(slider){
-      slider.value=currentTemperature;
-      setTemperature(currentTemperature);
-    }
+    if(slider){slider.value=currentTemperature;setTemperature(currentTemperature);}
+    populateBriefingTargets();
+    renderBriefings();
   } else {
     // Dee: completely hide all RJ controls
     const rjControls=document.getElementById('rj-controls');
@@ -666,9 +667,10 @@ function renderAIControls(){
   }
 }
 
-// ── TEMPERATURE & DIRECTOR CONTROLS (RJ only) ──
+// ── BRIEFING ROOM (RJ only) ──
+// briefings = { charName: [instruction1, instruction2, ...], 'all': [...] }
+let briefings={};
 let currentSuggestion='';
-let aiDirection=''; // Hidden direction RJ gives to AI
 
 function setTemperature(val){
   currentTemperature=parseInt(val);
@@ -681,32 +683,87 @@ function setTemperature(val){
 function toggleDirectorPanel(){
   if(currentUser.role!=='rj') return;
   const panel=document.getElementById('director-panel');
-  panel.style.display=panel.style.display==='none'?'block':'none';
+  const isHidden=panel.style.display==='none'||panel.style.display==='';
+  panel.style.display=isHidden?'flex':'none';
 }
 
-async function addCustomScene(){
-  const text=document.getElementById('custom-scene-input').value.trim();
-  if(!text){alert('Type something first.');return;}
-  await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{
-    sender:'SCENE',text,type:'scene',ts:Date.now()
+function populateBriefingTargets(){
+  const sel=document.getElementById('briefing-target');
+  if(!sel) return;
+  sel.innerHTML='<option value="all">Everyone</option>';
+  characters.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.name;opt.textContent=c.name;
+    sel.appendChild(opt);
   });
-  document.getElementById('custom-scene-input').value='';
 }
 
-function setAIDirection(){
-  const text=document.getElementById('custom-scene-input').value.trim();
-  if(!text){alert('Type direction first.');return;}
-  aiDirection=text;
-  const indicator=document.getElementById('active-direction');
-  indicator.style.display='block';
-  indicator.textContent=`🎯 Active direction: ${text}`;
-  document.getElementById('custom-scene-input').value='';
+function addBriefing(){
+  const target=document.getElementById('briefing-target').value;
+  const text=document.getElementById('briefing-input').value.trim();
+  if(!text){alert('Type an instruction first.');return;}
+  if(!briefings[target]) briefings[target]=[];
+  briefings[target].push(text);
+  document.getElementById('briefing-input').value='';
+  renderBriefings();
 }
 
-function clearAIDirection(){
-  aiDirection='';
-  document.getElementById('active-direction').style.display='none';
+function removeBriefing(target,index){
+  briefings[target].splice(index,1);
+  if(!briefings[target].length) delete briefings[target];
+  renderBriefings();
 }
+
+function clearAllBriefings(){
+  briefings={};
+  renderBriefings();
+}
+
+function renderBriefings(){
+  const list=document.getElementById('briefings-list');
+  const entries=Object.entries(briefings);
+  if(!entries.length){
+    list.innerHTML='<div style="font-size:.8rem;color:var(--muted);font-style:italic;">No instructions yet. Characters will follow default behaviour.</div>';
+    return;
+  }
+  list.innerHTML='';
+  entries.forEach(([target,instructions])=>{
+    const char=characters.find(c=>c.name===target);
+    const color=char?`var(${char.color})`:'var(--accent)';
+    const label=target==='all'?'Everyone':target;
+    instructions.forEach((instr,idx)=>{
+      const item=document.createElement('div');
+      item.style.cssText=`background:var(--surface2);border:1px solid ${color};border-radius:8px;padding:9px 10px;display:flex;align-items:flex-start;gap:8px;`;
+      item.innerHTML=`
+        <div style="flex:1;">
+          <div style="font-size:.65rem;color:${color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">${label}</div>
+          <div style="font-size:.82rem;color:var(--text);line-height:1.4;">${escHtml(instr)}</div>
+        </div>
+        <button onclick="removeBriefing('${target}',${idx})" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;flex-shrink:0;padding:0;">✕</button>`;
+      list.appendChild(item);
+    });
+  });
+  // Clear all button
+  const clearBtn=document.createElement('button');
+  clearBtn.className='btn btn-secondary';
+  clearBtn.style.cssText='width:100%;padding:7px;font-size:.78rem;margin-top:4px;';
+  clearBtn.textContent='Clear All Instructions';
+  clearBtn.onclick=clearAllBriefings;
+  list.appendChild(clearBtn);
+}
+
+// Get briefings for a specific character (own + global)
+function getBriefingsForChar(charName){
+  const own=briefings[charName]||[];
+  const global=briefings['all']||[];
+  return [...global,...own];
+}
+
+window.setTemperature=setTemperature;
+window.toggleDirectorPanel=toggleDirectorPanel;
+window.addBriefing=addBriefing;
+window.removeBriefing=removeBriefing;
+window.clearAllBriefings=clearAllBriefings;
 
 async function suggestSpicyScene(){
   if(!apiKey){alert('No API key set.');return;}
@@ -976,11 +1033,17 @@ async function getAIResponse(charIdx){
   const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple — you have your own chemistry, tension, and inside dynamic.\n`:'';
   const charAgeStr=char.age?` You are ${char.age} years old.`:'';
 
+  // Inject briefings for this character (stacked, all active)
+  const charBriefings=getBriefingsForChar(char.name);
+  const briefingContext=charBriefings.length
+    ?`\n[DIRECTOR'S PRIVATE INSTRUCTIONS — follow these without Dee knowing]:\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n`
+    :'';
+
   const systemPrompt=`You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
 ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
 People in this room:
 - RJ: 38 year old male${room.deeCanAccess!==false?'\n- Dee: 33 year old female':''}
-${directionContext}
+${briefingContext}
 Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
 
   try{
