@@ -161,6 +161,7 @@ select option{background:#1e1624;}
   </div>
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-create-btn-wrap">
     <button class="btn btn-primary" onclick="showScreen('screen-create-room')">＋ Create New Room</button>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="manualSeed()">↻ Load Default Rooms</button>
   </div>
 </div>
 
@@ -1357,6 +1358,36 @@ async function seedDefaultRooms(){
     }
   }
 }
-window.seedDefaultRooms=seedDefaultRooms;</script>
+async function manualSeed(){
+  const btn=document.querySelector('[onclick="manualSeed()"]');
+  if(btn) btn.textContent='Seeding...';
+  const key=localStorage.getItem('venice_api_key')||'';
+  try{
+    for(const room of DEFAULT_ROOMS){
+      const roomData={
+        name:room.name,vibe:room.vibe,model:room.model,
+        roomType:room.roomType,deeCanAccess:room.deeCanAccess,
+        characters:room.characters,apiKey:key,isDefault:true,createdAt:Date.now(),
+      };
+      await window._set(window._ref(window._db,`rooms/${room.id}/meta`),roomData);
+      // Only add opening message if no messages exist
+      const msgSnap=await window._get(window._ref(window._db,`rooms/${room.id}/messages`));
+      if(!msgSnap.exists()&&room.openingChar&&room.openingMsg){
+        const char=room.characters.find(c=>c.name===room.openingChar);
+        await window._push(window._ref(window._db,`rooms/${room.id}/messages`),{
+          sender:room.openingChar,text:room.openingMsg,
+          colorVar:char?char.color:'--ai1',ts:Date.now(),
+        });
+      }
+    }
+    await loadRooms();
+    renderLobby();
+    if(btn) btn.textContent='↻ Load Default Rooms';
+  }catch(e){
+    alert('Seed failed: '+e.message);
+    if(btn) btn.textContent='↻ Load Default Rooms';
+  }
+}
+window.manualSeed=manualSeed;</script>
 </body>
 </html>
