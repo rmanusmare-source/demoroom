@@ -297,15 +297,8 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 window._db=db; window._ref=ref; window._set=set; window._push=push;
 window._onValue=onValue; window._get=get; window._remove=remove;
-// Restore session after Firebase is ready
-setTimeout(async()=>{
-  if(window._onFirebaseReady) await window._onFirebaseReady();
-  // Seed default rooms if RJ is logged in and has API key
-  if(currentUser&&currentUser.role==='rj'&&localStorage.getItem('venice_api_key')){
-    await seedDefaultRooms();
-    await loadRooms();
-  }
-}, 100);
+// Trigger session restore after Firebase is ready
+setTimeout(()=>{ if(window._onFirebaseReady) window._onFirebaseReady(); }, 100);
 </script>
 
 <script>
@@ -343,7 +336,7 @@ let editingRoomId=null;
 let cardCounter=0;
 
 // ── LOGIN ──
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('login-username').value.trim().toLowerCase();
   const p=document.getElementById('login-password').value;
   const errEl=document.getElementById('login-error');
@@ -359,7 +352,7 @@ function doLogin(){
     await loadRooms();
     renderLobby();
   } else {
-    showLobby();
+    await showLobby();
   }
 }
 window.doLogin=doLogin;
@@ -379,10 +372,16 @@ async function restoreSession(){
   const saved=localStorage.getItem('session_user');
   if(!saved||!USERS[saved]) return;
   currentUser=USERS[saved];
-  if(currentUser.role==='rj') apiKey=localStorage.getItem('venice_api_key')||'';
-  await showLobby();
+  if(currentUser.role==='rj'){
+    apiKey=localStorage.getItem('venice_api_key')||'';
+    await showLobby();
+    if(apiKey) await seedDefaultRooms();
+    await loadRooms();
+    renderLobby();
+  } else {
+    await showLobby();
+  }
 }
-// Called after Firebase is ready
 window._onFirebaseReady=restoreSession;
 
 // ── LOBBY ──
