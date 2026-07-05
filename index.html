@@ -1020,10 +1020,7 @@ async function getAIResponse(charIdx){
   
   const tempLabels=['','Casual - friendly, light flirting','Flirty - suggestive, playful, sensual','Spicy - explicit, uninhibited, passionate','Explicit - raw, intense, no holds barred'];
   const tempContext=`Current intensity level: ${tempLabels[currentTemperature]}\n`;
-  
-  // Inject hidden AI direction if set (only RJ knows about this)
-  const directionContext=aiDirection?`\n[DIRECTOR'S INSTRUCTION - keep this in mind for your response]: ${aiDirection}\n`:'';
-  
+
   const othersDesc=characters.filter((_,i)=>i!==charIdx).map(c=>{
     const rel=c.name===char.coupleWith||char.name===c.coupleWith?' (your partner)':'';
     const ageStr=c.age?`, ${c.age} years old`:'';
@@ -1053,24 +1050,21 @@ Adjust your intensity and language to match the current temperature level. Write
       headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
       body:JSON.stringify({model:selectedModel,messages:[{role:'user',content:`${systemPrompt}\n\n--- Chat ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. Just the message.`}],max_tokens:350,temperature:0.93,venice_parameters:{include_venice_system_prompt:false}})
     });
-    typingEl.remove();
-    if(!res.ok){const err=await res.json().catch(()=>({}));addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);}
-    else{
+    if(!res.ok){
+      typingEl.remove();
+      const err=await res.json().catch(()=>({}));
+      addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);
+    } else {
       const data=await res.json();
       const reply=data.choices?.[0]?.message?.content?.trim()||'…';
-      
       // Typing delay: 300ms per word, 2s min, 6s max + variance
-      // Feels natural — short replies are quick, long ones take time
       const wordCount=reply.trim().split(/\s+/).length;
       const baseDelay=Math.min(Math.max(wordCount*300,2000),6000);
       const variance=(Math.random()-0.5)*600;
       const typingDelay=Math.round(baseDelay+variance);
-      
-      // Show typing indicator for the delay
-      const newTypingEl=addLocalTyping(char);
+      // Keep existing typing indicator visible during delay, then remove and push
       await new Promise(r=>setTimeout(r,typingDelay));
-      newTypingEl.remove();
-      
+      typingEl.remove();
       await pushMessage(char.name,reply,char.color);
     }
   }catch(e){typingEl.remove();addLocalError(`Network error: ${e.message}`);}
