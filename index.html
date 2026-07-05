@@ -277,6 +277,18 @@ select option{background:#1e1624;}
       <div id="briefings-list" style="display:flex;flex-direction:column;gap:8px;">
         <div style="font-size:.8rem;color:var(--muted);font-style:italic;">No instructions yet. Characters will follow default behaviour.</div>
       </div>
+
+      <!-- Memory section -->
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Character Memories</div>
+          <button class="btn-icon" onclick="refreshMemoryPanel()" style="font-size:.65rem;">↻ Refresh</button>
+        </div>
+        <div id="memory-panel" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:.78rem;color:var(--muted);font-style:italic;">No memories yet. Builds after 20 messages.</div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;padding:6px;font-size:.78rem;margin-top:8px;" onclick="compressMemory().then(refreshMemoryPanel)">⚡ Compress Now</button>
+      </div>
     </div>
   </div>
 </div>
@@ -842,6 +854,7 @@ function toggleDirectorPanel(){
   const panel=document.getElementById('director-panel');
   const isHidden=panel.style.display==='none'||panel.style.display==='';
   panel.style.display=isHidden?'flex':'none';
+  if(isHidden) refreshMemoryPanel();
 }
 
 function populateBriefingTargets(){
@@ -1040,6 +1053,80 @@ Output only the scene description, no asterisks or quotes. Make it feel natural 
 }
 window.generateAutoScene=generateAutoScene;
 
+// ── MEMORY COMPRESSION ──
+async function compressMemory(){
+  if(!apiKey||!currentRoomId||!currentRoomData) return;
+  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  if(!snap.exists()) return;
+
+  const msgs=Object.values(snap.val())
+    .filter(m=>m.type!=='scene')
+    .sort((a,b)=>a.ts-b.ts)
+    .map(m=>`[${m.sender}]: ${m.text}`)
+    .join('\n');
+
+  for(const char of characters){
+    const prompt=`You are summarizing a conversation for ${char.name} to remember.
+
+Full conversation:
+${msgs}
+
+Write a brief memory summary (3-5 sentences max) from ${char.name}'s perspective. Include:
+- What you learned about the people you talked to (names, personality, things they revealed)
+- Key moments or turning points in the conversation
+- The emotional tone and where things stand now
+- Anything important left unsaid or unresolved
+
+Write in first person as ${char.name}. Be specific. No fluff.`;
+
+    try{
+      const res=await fetch('https://api.venice.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:selectedModel,
+          messages:[{role:'user',content:prompt}],
+          max_tokens:200,
+          temperature:0.5,
+          venice_parameters:{include_venice_system_prompt:false}
+        })
+      });
+      if(res.ok){
+        const data=await res.json();
+        const memory=data.choices?.[0]?.message?.content?.trim();
+        if(memory){
+          await window._set(window._ref(window._db,`rooms/${currentRoomId}/memory/${char.name}`),memory);
+        }
+      }
+    }catch(e){
+      console.error('Memory compression failed for',char.name,e);
+    }
+  }
+}
+window.compressMemory=compressMemory;
+
+async function refreshMemoryPanel(){
+  const panel=document.getElementById('memory-panel');
+  if(!panel||!currentRoomId) return;
+  panel.innerHTML='<div style="font-size:.78rem;color:var(--muted);">Loading...</div>';
+  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/memory`));
+  if(!snap.exists()||!snap.val()){
+    panel.innerHTML='<div style="font-size:.78rem;color:var(--muted);font-style:italic;">No memories yet. Builds after 20 messages.</div>';
+    return;
+  }
+  panel.innerHTML='';
+  const memories=snap.val();
+  Object.entries(memories).forEach(([charName,memory])=>{
+    const char=characters.find(c=>c.name===charName);
+    const color=char?`var(${char.color})`:'var(--accent)';
+    const div=document.createElement('div');
+    div.style.cssText=`background:var(--surface2);border:1px solid ${color};border-radius:8px;padding:9px 10px;`;
+    div.innerHTML=`<div style="font-size:.65rem;color:${color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">${charName}'s Memory</div><div style="font-size:.8rem;color:var(--text);line-height:1.5;font-style:italic;">${escHtml(memory)}</div>`;
+    panel.appendChild(div);
+  });
+}
+window.refreshMemoryPanel=refreshMemoryPanel;
+
 // ── MESSAGES ──
 function subscribeMessages(roomId){
   const msgsRef=window._ref(window._db,`rooms/${roomId}/messages`);
@@ -1163,17 +1250,21 @@ async function getAIResponse(charIdx){
   const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
   let historyLines=[];
   if(snap.exists()){
-    historyLines=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-30).map(m=>{
+    historyLines=Object.values(snap.val()).filter(m=>m.type!=='scene').sort((a,b)=>a.ts-b.ts).slice(-25).map(m=>{
       let s=m.sender;
       if(s==='Rohan') s='RJ'; if(s==='Shreya') s='Dee';
       return `[${s}]: ${m.text}`;
     });
   }
 
+  // Load long-term memory for this character
+  const memSnap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/memory/${char.name}`));
+  const charMemory=memSnap.exists()?memSnap.val():'';
+
   const room=currentRoomData||{};
   const isOnline=room.roomType==='online';
   const vibeContext=room.vibe?`Setting: ${room.vibe}\n`:'';
-  const onlineContext=isOnline?'This is an ONLINE text conversation (messaging/chatting from different locations). Do NOT describe physical actions, body movements, or face-to-face scene details. People are texting each other. Keep responses conversational like real messaging.\n':'';
+  const onlineContext=isOnline?'This is an ONLINE text conversation. Do NOT describe physical actions or face-to-face scene details. People are texting each other.\n':'';
   
   const tempLabels=['','Casual - friendly, light flirting','Flirty - suggestive, playful, sensual','Spicy - explicit, uninhibited, passionate','Explicit - raw, intense, no holds barred'];
   const tempContext=`Current intensity level: ${tempLabels[currentTemperature]}\n`;
@@ -1184,22 +1275,27 @@ async function getAIResponse(charIdx){
     return `- ${c.name} (${c.gender}${ageStr})${rel}: ${c.desc||c.archetype}`;
   }).join('\n');
   const couplePartner=char.coupleWith?characters.find(c=>c.name===char.coupleWith):null;
-  const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple — you have your own chemistry, tension, and inside dynamic.\n`:'';
+  const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple with your own chemistry and dynamic.\n`:'';
   const charAgeStr=char.age?` You are ${char.age} years old.`:'';
 
-  // Inject briefings for this character (stacked, all active)
+  // Memory context — what you've learned about them from past conversations
+  const memoryContext=charMemory
+    ?`What you remember from previous conversations:\n${charMemory}\n\n`
+    :'You are meeting these people for the first time. You know nothing about them yet — discover who they are through conversation.\n';
+
+  // Briefings — RJ's private instructions
   const charBriefings=getBriefingsForChar(char.name);
   const briefingContext=charBriefings.length
-    ?`PRIVATE INSTRUCTIONS FROM DIRECTOR (follow these naturally, Dee must not know):\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n\n`
+    ?`PRIVATE INSTRUCTIONS (follow naturally, do not reveal):\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n\n`
     :'';
 
-  // Briefings go at TOP of system prompt so AI prioritises them
+  // Briefings at TOP, memory next, then character identity
   const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
-${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others here:\n${othersDesc}\n`:''}
-People in this room:
-- RJ: 38 year old male${room.deeCanAccess!==false?'\n- Dee: 33 year old female':''}
+${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who may be present:\n${othersDesc}\n`:''}
+${memoryContext}
+IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said in the conversation. Let the relationship develop naturally. Start warm but as a stranger. Let curiosity and attraction build through the conversation itself.
 
-Adjust your intensity and language to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. React to what was just said. Be yourself completely. No disclaimers, no name prefix, just the message.`;
+Adjust intensity to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. No disclaimers, no name prefix, just the message.`;
 
   try{
     const res=await fetch('https://api.venice.ai/api/v1/chat/completions',{
@@ -1232,6 +1328,10 @@ Adjust your intensity and language to match the current temperature level. Write
       await new Promise(r=>setTimeout(r,typingDelay));
       typingEl.remove();
       await pushMessage(char.name,reply,char.color);
+      // Trigger memory compression every 20 messages
+      if(knownMsgKeys.size>0 && knownMsgKeys.size%20===0){
+        setTimeout(()=>compressMemory(),2000);
+      }
     }
   }catch(e){typingEl.remove();addLocalError(`Network error: ${e.message}`);}
   isLoading=false;setAIButtonsDisabled(false);
