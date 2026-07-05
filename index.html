@@ -566,17 +566,15 @@ async function enterRoom(roomId){
   badge.style.borderColor=`var(${currentUser.color})`;
   badge.style.color=`var(${currentUser.color})`;
 
-  // Participants — exclude Dee if she's blocked from this room
+  // Participants — show only AI characters, not RJ and Dee
   const pEl=document.getElementById('participants-display');
   pEl.innerHTML='';
-  const participants=[{name:'RJ',color:'var(--rj)'}];
-  if(room.deeCanAccess!==false){
-    participants.push({name:'Dee',color:'var(--dee)'});
-  }
-  characters.forEach(c=>participants.push({name:c.name,color:`var(${c.color})`}));
-  participants.forEach(p=>{
+  characters.forEach(c=>{
     const b=document.createElement('span');
-    b.className='pbadge';b.style.borderColor=p.color;b.style.color=p.color;b.textContent=p.name;
+    b.className='pbadge';
+    b.style.borderColor=`var(${c.color})`;
+    b.style.color=`var(${c.color})`;
+    b.textContent=c.name;
     pEl.appendChild(b);
   });
 
@@ -1048,7 +1046,16 @@ Adjust your intensity and language to match the current temperature level. Write
     const res=await fetch('https://api.venice.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
-      body:JSON.stringify({model:selectedModel,messages:[{role:'user',content:`${systemPrompt}\n\n--- Chat ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. Just the message.`}],max_tokens:350,temperature:0.93,venice_parameters:{include_venice_system_prompt:false}})
+      body:JSON.stringify({
+        model:selectedModel,
+        messages:[
+          {role:'system', content:systemPrompt},
+          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nNow reply as ${char.name}. One message only. No name prefix.`}
+        ],
+        max_tokens:350,
+        temperature:0.93,
+        venice_parameters:{include_venice_system_prompt:false}
+      })
     });
     if(!res.ok){
       typingEl.remove();
