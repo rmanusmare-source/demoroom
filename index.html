@@ -412,7 +412,17 @@ let cardCounter=0;
 // ── DEFAULT ROOMS ── built after CHAR_TEMPLATES is defined
 function buildDefaultRooms(){
   const t=CHAR_TEMPLATES;
-  function c(key,color){return {...t[key],color,coupleWith:t[key].coupleWith||null};}
+  // Sanitize removes undefined/null fields Firebase rejects
+  function sanitize(obj){
+    const clean={};
+    Object.entries(obj).forEach(([k,v])=>{
+      if(v===undefined) return;
+      if(v===null) clean[k]='';
+      else clean[k]=v;
+    });
+    return clean;
+  }
+  function c(key,color){return sanitize({...t[key],color,coupleWith:t[key].coupleWith||''});}
   return [
     {id:'default_seduction',name:'The Art of Seduction',vibe:'An intimate online conversation. Two people who find each other magnetic.',roomType:'online',deeCanAccess:true,model:'llama-3.3-70b',characters:[c('marcus','--ai1'),c('sophia','--ai2')],openingChar:'Marcus',openingMsg:'so you actually believe seduction is a skill someone can learn? or is it just who you are'},
     {id:'default_confessions',name:'Late Night Confessions',vibe:'Past midnight. An online conversation that started as small talk weeks ago and became something neither planned.',roomType:'online',deeCanAccess:true,model:'llama-3.3-70b',characters:[c('luca','--ai3')],openingChar:'Luca',openingMsg:'still awake? thought i was the only one with bad habits'},
@@ -420,8 +430,8 @@ function buildDefaultRooms(){
     {id:'default_flight',name:'Strangers on a Flight',vibe:'An 8-hour overnight flight. Business class. Dim lights. Noah has the aisle seat next to Dee.',roomType:'in-person',deeCanAccess:true,model:'llama-3.3-70b',characters:[c('noah','--ai6')],openingChar:'Noah',openingMsg:"alright confession — I've been trying to think of a reason to keep talking to you and I genuinely can't think of one except that I want to"},
     {id:'default_colleague',name:'The Forbidden Colleague',vibe:'Late night work messages that stopped being about work three weeks ago.',roomType:'online',deeCanAccess:true,model:'llama-3.3-70b',characters:[c('james','--ai7')],openingChar:'James',openingMsg:'working late again or just avoiding going home'},
     {id:'default_goa',name:'Goa Weekend',vibe:'A beach villa in Goa. Saturday night. Matteo and Zara are a couple they met at the beach shack this afternoon.',roomType:'in-person',deeCanAccess:true,model:'llama-3.3-70b',characters:[c('matteo','--ai1'),c('zara','--ai2')],openingChar:'Zara',openingMsg:'okay I have to ask — how long have you two been together because the way he looks at you is honestly making me a little jealous'},
-    {id:'default_photographer',name:'The Photographer',vibe:'A private photography studio in Paris. Afternoon light. A boudoir session Dee booked impulsively.',roomType:'in-person',deeCanAccess:true,model:'llama-3.3-70b',characters:[{name:'Julien',gender:'Male',age:42,nationality:'French',archetype:'Sophisticated',commStyle:['Quiet','Intense','Mysterious'],interests:['Photography','Art','Film'],kinks:['Slow burn','Voyeur'],flaw:'Secretive',backstory:'Award-winning photographer in Paris. Has shot the most celebrated faces in the world and finds most of them boring.',quirks:'Speaks softly. Long silences. Sees things in people they have not noticed themselves.',howMet:'Dee booked a private session',desc:'',color:'--ai3',coupleWith:null}],openingChar:'Julien',openingMsg:'there is no wrong way to do this. I just want you to forget I am here. Which I know sounds strange given the camera. But try.'},
-    {id:'default_deepwaters',name:'Deep Waters',vibe:'An anonymous online space. No names. No faces. Just two people saying things they would never say anywhere else.',roomType:'online',deeCanAccess:true,model:'llama-3.3-70b',characters:[{name:'Unknown',gender:'Male',age:null,nationality:'',archetype:'Mysterious Stranger',commStyle:['Mysterious','Direct','Intense'],interests:['Philosophy'],kinks:['No strings','Slow burn'],flaw:'Secretive',backstory:'Unknown. That is the point.',quirks:'No small talk. Says things other people only think.',howMet:'Anonymous online',desc:'',color:'--ai4',coupleWith:null}],openingChar:'Unknown',openingMsg:"I'll go first. Something I've never told anyone: I think about what it would feel like to want someone so much it scares me. Your turn."},
+    {id:'default_photographer',name:'The Photographer',vibe:'A private photography studio in Paris. Afternoon light. A boudoir session Dee booked impulsively.',roomType:'in-person',deeCanAccess:true,model:'llama-3.3-70b',temperature:3,characters:[sanitize({name:'Julien',gender:'Male',age:42,nationality:'French',archetype:'Sophisticated',commStyle:['Quiet','Intense','Mysterious'],interests:['Photography','Art','Film'],kinks:['Slow burn','Voyeur'],flaw:'Secretive',backstory:'Award-winning photographer in Paris. Has shot the most celebrated faces in the world and finds most of them boring.',quirks:'Speaks softly. Long silences. Sees things in people they have not noticed themselves.',howMet:'Dee booked a private session',desc:'',color:'--ai3',coupleWith:''})],openingChar:'Julien',openingMsg:'there is no wrong way to do this. I just want you to forget I am here. Which I know sounds strange given the camera. But try.'},
+    {id:'default_deepwaters',name:'Deep Waters',vibe:'An anonymous online space. No names. No faces. Just two people saying things they would never say anywhere else.',roomType:'online',deeCanAccess:true,model:'llama-3.3-70b',temperature:4,characters:[sanitize({name:'Unknown',gender:'Male',age:0,nationality:'',archetype:'Mysterious Stranger',commStyle:['Mysterious','Direct','Intense'],interests:['Philosophy'],kinks:['No strings','Slow burn'],flaw:'Secretive',backstory:'Unknown. That is the point.',quirks:'No small talk. Says things other people only think.',howMet:'Anonymous online',desc:'',color:'--ai4',coupleWith:''})],openingChar:'Unknown',openingMsg:"I'll go first. Something I've never told anyone: I think about what it would feel like to want someone so much it scares me. Your turn."},
   ];
 }
 const DEFAULT_ROOMS=[];
@@ -620,7 +630,10 @@ function renderLobby(){
     const castHtml=chars.map((c,i)=>{
       const color=`var(${AI_COLORS[i%AI_COLORS.length]})`;
       const detail=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(', ');
-      return `<span class="cast-chip"><span class="cast-chip-dot" style="background:${color}"></span><span class="cast-chip-name" style="color:${color}">${escHtml(c.name)}</span>${detail?`<span class="cast-chip-detail"> · ${escHtml(detail)}</span>`:''}${c.kinks?.length?`<span class="cast-chip-detail"> · ${escHtml(c.kinks.slice(0,2).join(', '))}</span>`:''}</span>`;
+      const avatarHtml=c.avatar
+        ?`<img src="${c.avatar}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid ${color};flex-shrink:0;">`
+        :`<span style="width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid ${color};display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;color:${color};flex-shrink:0;">${c.name[0]}</span>`;
+      return `<span class="cast-chip">${avatarHtml}<span class="cast-chip-name" style="color:${color}">${escHtml(c.name)}</span>${detail?`<span class="cast-chip-detail"> · ${escHtml(detail)}</span>`:''}${c.kinks?.length?`<span class="cast-chip-detail"> · ${escHtml(c.kinks.slice(0,2).join(', '))}</span>`:''}</span>`;
     }).join('<span style="color:var(--border);margin:0 2px;">·</span>');
 
     // Opening line preview
@@ -699,8 +712,15 @@ function showCastModal(roomId,e){
     div.className='char-profile';
     div.style.borderColor=`${color.replace('var(','').replace(')','')}`.includes('--')?`var(${AI_COLORS[i%AI_COLORS.length]})`.replace('var(','rgba(').replace(')',',.3)'):'rgba(196,166,97,.2)';
     div.innerHTML=`
-      <div class="char-profile-name" style="color:${color}">${escHtml(c.name)}</div>
-      <div class="char-profile-sub">${escHtml(sub)}</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        ${c.avatar
+          ?`<img src="${c.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid ${color};flex-shrink:0;">`
+          :`<div style="width:72px;height:72px;border-radius:50%;background:var(--surface2);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${color};flex-shrink:0;">${c.name[0]}</div>`}
+        <div>
+          <div class="char-profile-name" style="color:${color}">${escHtml(c.name)}</div>
+          <div class="char-profile-sub">${escHtml(sub)}</div>
+        </div>
+      </div>
       ${c.backstory?`<div class="char-profile-section"><div class="char-profile-label">Backstory</div><div class="char-profile-text">${escHtml(c.backstory)}</div></div>`:''}
       ${c.howMet?`<div class="char-profile-section"><div class="char-profile-label">How they met</div><div class="char-profile-text">${escHtml(c.howMet)}</div></div>`:''}
       ${c.quirks?`<div class="char-profile-section"><div class="char-profile-label">Quirks</div><div class="char-profile-text">${escHtml(c.quirks)}</div></div>`:''}
@@ -797,7 +817,7 @@ async function saveRoom(){
     backstory:card.querySelector('.char-backstory').value.trim(),
     howMet:card.querySelector('.char-howmet').value.trim(),
     quirks:card.querySelector('.char-quirks').value.trim(),
-    desc:card.querySelector('.char-desc').value.trim(),
+    avatar:card.querySelector('.char-avatar-data').value.trim()||null,
     coupleWith:card.querySelector('.char-couple').value||null,
     color:AI_COLORS[i%AI_COLORS.length],
   }));
@@ -1299,7 +1319,10 @@ function renderMessage(msg){
   const cleanText=msg.text.replace(/^\[([^\]]+)\]:\s*/,'');
   const bubbleHtml=escHtml(cleanText).replace(/@(\w+)/g,'<span class="tag-highlight">@$1</span>');
   const div=document.createElement('div');div.className=`msg ${cls}`;
-  div.innerHTML=`<div class="msg-avatar" style="border-color:${color};color:${color}">${msg.sender.slice(0,2).toUpperCase()}</div><div class="msg-body"><div class="msg-sender" style="color:${color}">${escHtml(msg.sender)}</div><div class="msg-bubble">${bubbleHtml}</div></div>`;
+  const avatarContent=(!isRJ&&!isDee&&msg.colorVar)?
+    (()=>{const char=characters.find(c=>c.color===msg.colorVar||`--${msg.colorVar}`===c.color||(msg.colorVar&&c.color&&msg.colorVar===c.color));return char?.avatar?`<img src="${char.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`:`${msg.sender.slice(0,2).toUpperCase()}`;})()
+    :msg.sender.slice(0,2).toUpperCase();
+  div.innerHTML=`<div class="msg-avatar" style="border-color:${color};color:${color};overflow:hidden;">${avatarContent}</div><div class="msg-body"><div class="msg-sender" style="color:${color}">${escHtml(msg.sender)}</div><div class="msg-bubble">${bubbleHtml}</div></div>`;
   msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
 }
 
@@ -1540,7 +1563,20 @@ function addCharacterPrefilled(preset){
     <div class="field"><label>Backstory (1-2 sentences)</label><textarea class="char-backstory" style="height:52px;resize:none;" placeholder="Who are they? What shaped them?">${escHtml(preset.backstory||'')}</textarea></div>
     <div class="field"><label>How they met Dee</label><input type="text" class="char-howmet" placeholder="e.g. On a flight, At a party, Online…" value="${escHtml(preset.howMet||'')}"></div>
     <div class="field"><label>Quirks</label><textarea class="char-quirks" style="height:42px;resize:none;" placeholder="Specific behaviours, tells, habits…">${escHtml(preset.quirks||'')}</textarea></div>
-    <div class="field"><label>Extra description (optional)</label><textarea class="char-desc" style="height:42px;resize:none;" placeholder="Anything else…">${escHtml(preset.desc||'')}</textarea></div>`;
+    <div class="field"><label>Extra description (optional)</label><textarea class="char-desc" style="height:42px;resize:none;" placeholder="Anything else…">${escHtml(preset.desc||'')}</textarea></div>
+    <div class="field">
+      <label>Portrait</label>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+        <div class="char-avatar-preview" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border-gold);background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+          ${preset.avatar?`<img src="${preset.avatar}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:1.2rem;color:var(--muted)">?</span>`}
+        </div>
+        <div style="flex:1;">
+          <button type="button" class="btn btn-secondary" style="padding:7px 12px;font-size:.78rem;margin-top:0;width:auto;" onclick="generatePortrait(${id})">✦ Generate Portrait</button>
+          <div class="char-avatar-status" style="font-size:.7rem;color:var(--muted);margin-top:4px;"></div>
+          <input type="hidden" class="char-avatar-data" value="${escHtml(preset.avatar||'')}">
+        </div>
+      </div>
+    </div>`;
 
   container.appendChild(card);
   card.querySelector('.char-name-input').oninput=()=>renumberCards();
@@ -1564,6 +1600,9 @@ function applyTemplate(sel,id){
   card.querySelector('.char-quirks').value=t.quirks||'';
   card.querySelector('.char-flaw').value=t.flaw||'None';
   card.querySelector('.char-desc').value=t.desc||'';
+  card.querySelector('.char-avatar-data').value='';
+  card.querySelector('.char-avatar-preview').innerHTML=`<span style="font-size:1.2rem;color:var(--muted)">?</span>`;
+  card.querySelector('.char-avatar-status').textContent='';
   // Checkboxes
   card.querySelectorAll('.char-comm-style').forEach(cb=>cb.checked=(t.commStyle||[]).includes(cb.value));
   card.querySelectorAll('.char-interest').forEach(cb=>cb.checked=(t.interests||[]).includes(cb.value));
@@ -1597,7 +1636,63 @@ function onArchetypeChange(sel,id){
   if(idx===ARCHETYPES.length-1)d.focus();
 }
 
-window.addCharacter=addCharacter;window.removeCharacter=removeCharacter;window.onArchetypeChange=onArchetypeChange;
+async function generatePortrait(cardId){
+  const card=document.querySelector(`.char-card[data-id="${cardId}"]`);
+  if(!card) return;
+  const key=localStorage.getItem('venice_api_key')||apiKey;
+  if(!key){alert('Save your Venice API key first (in any room setup).');return;}
+
+  const name=card.querySelector('.char-name-input').value.trim()||'person';
+  const age=card.querySelector('.char-age').value||'30';
+  const gender=card.querySelector('.char-gender').value;
+  const nat=card.querySelector('.char-nationality').value.trim();
+  const archetype=ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)]?.label||'';
+  const interests=Array.from(card.querySelectorAll('.char-interest:checked')).map(c=>c.value).join(', ');
+
+  const genderDesc=gender==='Female'?'woman':gender==='Male'?'man':'person';
+  const prompt=`Photorealistic portrait of ${name}, ${age} year old ${nat?nat+' ':''} ${genderDesc}. ${archetype}. ${interests?`Interested in ${interests}.`:''} Editorial fashion photography, warm candlelit ambiance, shallow depth of field, high quality, 8k, professional studio lighting. Head and shoulders shot. Attractive, natural, authentic.`;
+
+  const statusEl=card.querySelector('.char-avatar-status');
+  const previewEl=card.querySelector('.char-avatar-preview');
+  statusEl.textContent='Generating portrait…';
+  statusEl.style.color='var(--accent)';
+
+  try{
+    const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'fluently-xl',
+        prompt,
+        negative_prompt:'cartoon, anime, illustration, drawing, painting, ugly, distorted, blurry, nsfw, nude, explicit',
+        width:512,height:512,
+        steps:20,
+        cfg_scale:7,
+        safe_mode:false,
+        return_binary:false,
+        format:'webp',
+      })
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      statusEl.textContent=`Error: ${err.error||res.status}`;
+      statusEl.style.color='#c4735a';
+      return;
+    }
+    const data=await res.json();
+    const b64=data.images?.[0];
+    if(!b64){statusEl.textContent='No image returned.';return;}
+    const dataUrl=`data:image/webp;base64,${b64}`;
+    card.querySelector('.char-avatar-data').value=dataUrl;
+    previewEl.innerHTML=`<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    statusEl.textContent='Portrait generated ✓';
+    statusEl.style.color='#7a9e7a';
+  }catch(e){
+    statusEl.textContent=`Error: ${e.message}`;
+    statusEl.style.color='#c4735a';
+  }
+}
+window.generatePortrait=generatePortrait;
 
 // ── NAVIGATION ──
 function showScreen(id){
@@ -1633,19 +1728,30 @@ async function manualSeed(){
   const btn=document.querySelector('[onclick="manualSeed()"]');
   if(btn) btn.textContent='Seeding...';
   const key=localStorage.getItem('venice_api_key')||'';
+  let seeded=0;
+  let errors=[];
   try{
     const rooms=buildDefaultRooms();
     for(const room of rooms){
-      const roomData={name:room.name,vibe:room.vibe,model:room.model,roomType:room.roomType,deeCanAccess:room.deeCanAccess,characters:room.characters,apiKey:key,isDefault:true,openingMsg:room.openingMsg||'',openingChar:room.openingChar||'',temperature:room.temperature||2,createdAt:Date.now()};
-      await window._set(window._ref(window._db,`rooms/${room.id}/meta`),roomData);
-      const msgSnap=await window._get(window._ref(window._db,`rooms/${room.id}/messages`));
-      if(!msgSnap.exists()&&room.openingChar&&room.openingMsg){
-        const char=room.characters.find(c=>c.name===room.openingChar);
-        await window._push(window._ref(window._db,`rooms/${room.id}/messages`),{sender:room.openingChar,text:room.openingMsg,colorVar:char?char.color:'--ai1',ts:Date.now()});
+      try{
+        const roomData={name:room.name,vibe:room.vibe,model:room.model,roomType:room.roomType,deeCanAccess:room.deeCanAccess,characters:room.characters,apiKey:key,isDefault:true,openingMsg:room.openingMsg||'',openingChar:room.openingChar||'',temperature:room.temperature||2,createdAt:Date.now()};
+        await window._set(window._ref(window._db,`rooms/${room.id}/meta`),roomData);
+        const msgSnap=await window._get(window._ref(window._db,`rooms/${room.id}/messages`));
+        if(!msgSnap.exists()&&room.openingChar&&room.openingMsg){
+          const char=room.characters.find(c=>c.name===room.openingChar);
+          await window._push(window._ref(window._db,`rooms/${room.id}/messages`),{sender:room.openingChar,text:room.openingMsg,colorVar:char?char.color:'--ai1',ts:Date.now()});
+        }
+        seeded++;
+        if(btn) btn.textContent=`Seeding ${seeded}/${rooms.length}...`;
+      }catch(e){
+        errors.push(`${room.name}: ${e.message}`);
+        console.error('Failed to seed room',room.id,e);
       }
     }
-    await loadRooms();renderLobby();
+    await loadRooms();
+    renderLobby();
     if(btn) btn.textContent='↻ Load Default Rooms';
+    if(errors.length) alert(`Seeded ${seeded} rooms. ${errors.length} failed:\n${errors.join('\n')}`);
   }catch(e){
     alert('Seed failed: '+e.message);
     if(btn) btn.textContent='↻ Load Default Rooms';
