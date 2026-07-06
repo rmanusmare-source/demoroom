@@ -562,58 +562,102 @@ async function loadRooms(){
   allRooms={};
   if(snap.exists()){
     const raw=snap.val();
-    // Data is stored as rooms/roomId/meta — normalise it
-    Object.entries(raw).forEach(([roomId, roomNode])=>{
-      if(roomNode && roomNode.meta){
-        allRooms[roomId]=roomNode.meta;
-      } else if(roomNode && roomNode.name){
-        // flat structure fallback
-        allRooms[roomId]=roomNode;
-      }
+    Object.entries(raw).forEach(([roomId,roomNode])=>{
+      if(roomNode&&roomNode.meta) allRooms[roomId]=roomNode.meta;
+      else if(roomNode&&roomNode.name) allRooms[roomId]=roomNode;
     });
   }
+  // Load last message and unread counts for each room
+  await loadUnreadCounts();
   renderLobby();
+}
+
+// unreadData = { roomId: { count, preview, lastSender } }
+let unreadData={};
+
+async function loadUnreadCounts(){
+  unreadData={};
+  const userKey=currentUser.role==='rj'?'rohan':'shreya';
+  const lastReadSnap=await window._get(window._ref(window._db,`users/${userKey}/lastRead`));
+  const lastRead=lastReadSnap.exists()?lastReadSnap.val():{};
+
+  await Promise.all(Object.keys(allRooms).map(async roomId=>{
+    const msgsSnap=await window._get(window._ref(window._db,`rooms/${roomId}/messages`));
+    if(!msgsSnap.exists()) return;
+    const msgs=Object.values(msgsSnap.val())
+      .filter(m=>m.type!=='scene')
+      .sort((a,b)=>a.ts-b.ts);
+    if(!msgs.length) return;
+    const lastMsg=msgs[msgs.length-1];
+    const lastReadTs=lastRead[roomId]||0;
+    const unreadMsgs=msgs.filter(m=>m.ts>lastReadTs&&m.sender!==currentUser.display);
+    if(unreadMsgs.length>0){
+      unreadData[roomId]={
+        count:unreadMsgs.length,
+        preview:lastMsg.text,
+        lastSender:lastMsg.sender,
+      };
+    }
+  }));
+}
+
+async function markRoomRead(roomId){
+  const userKey=currentUser.role==='rj'?'rohan':'shreya';
+  await window._set(window._ref(window._db,`users/${userKey}/lastRead/${roomId}`),Date.now());
+  delete unreadData[roomId];
 }
 
 function renderLobby(){
   const grid=document.getElementById('rooms-grid');
   let keys=Object.keys(allRooms);
-  
-  // Filter rooms for Dee - only show rooms where she has access
   if(currentUser.role==='dee'){
     keys=keys.filter(roomId=>allRooms[roomId].deeCanAccess!==false);
   }
-  
+  // Sort — unread rooms first
+  keys.sort((a,b)=>(unreadData[b]?1:0)-(unreadData[a]?1:0));
+
   grid.innerHTML='';
   if(!keys.length){
     const empty=document.createElement('div');
     empty.className='room-empty';
-    empty.textContent=currentUser.role==='dee'?'No rooms available for you yet.':'No rooms yet. RJ can create one below.';
+    empty.textContent=currentUser.role==='dee'?'No rooms available for you yet.':'No rooms yet. Create one below.';
     grid.appendChild(empty);
     return;
   }
   keys.forEach(roomId=>{
     const room=allRooms[roomId];
+    const unread=unreadData[roomId];
     const card=document.createElement('div');
     card.className='room-card';
+    if(unread) card.style.borderColor='var(--accent)';
+
     const chars=room.characters||[];
     const castHtml=chars.map((c,i)=>`<span class="cast-pill" style="border-color:var(${AI_COLORS[i%AI_COLORS.length]});color:var(${AI_COLORS[i%AI_COLORS.length]})">${escHtml(c.name)} · ${c.gender}</span>`).join('');
-    
-    // Show Dee access status only for RJ
+
     let deeStatus='';
     if(currentUser.role==='rj'){
       const hasAccess=room.deeCanAccess!==false;
-      deeStatus=`<span class="cast-pill" style="border-color:${hasAccess?'#34d399':'#7f1d1d'};color:${hasAccess?'#34d399':'#f87171'};">${hasAccess?'✓ Dee allowed':'✕ Dee blocked'}</span>`;
+      deeStatus=`<span class="cast-pill" style="border-color:${hasAccess?'#34d399':'#7f1d1d'};color:${hasAccess?'#34d399':'#f87171'};">${hasAccess?'✓ Dee':'✕ Dee blocked'}</span>`;
     }
-    
-    const editBtn=currentUser.role==='rj'?`<button class="btn-icon" onclick="editRoom('${roomId}',event)">✎ Edit</button><button class="btn-icon danger" onclick="deleteRoom('${roomId}',event)">✕</button>`:'';
+
+    const unreadBadge=unread
+      ?`<span style="background:var(--accent);color:white;border-radius:20px;padding:2px 8px;font-size:.68rem;font-weight:600;flex-shrink:0;">${unread.count}</span>`
+      :'';
+
+    const preview=unread
+      ?`<div style="font-size:.8rem;color:var(--text);margin-top:6px;padding:7px 10px;background:rgba(192,132,252,.08);border-radius:6px;border-left:2px solid var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="color:var(--accent);font-size:.7rem;">${escHtml(unread.lastSender)}: </span>${escHtml(unread.preview.slice(0,80))}${unread.preview.length>80?'…':''}</div>`
+      :'';
+
+    const editBtn=currentUser.role==='rj'?`<button class="btn-icon" onclick="editRoom('${roomId}',event)">✎</button><button class="btn-icon danger" onclick="deleteRoom('${roomId}',event)">✕</button>`:'';
+
     card.innerHTML=`
       <div class="room-card-top">
         <div class="room-name">${escHtml(room.name||'Unnamed Room')}</div>
-        <div class="room-actions">${editBtn}</div>
+        <div class="room-actions" style="display:flex;align-items:center;gap:6px;">${unreadBadge}${editBtn}</div>
       </div>
-      <div class="room-vibe">${escHtml(room.vibe||'')}</div>
-      <div class="room-cast">${castHtml}${deeStatus}</div>`;
+      <div class="room-vibe" style="font-size:.8rem;">${escHtml((room.vibe||'').slice(0,100))}${(room.vibe||'').length>100?'…':''}</div>
+      <div class="room-cast">${castHtml}${deeStatus}</div>
+      ${preview}`;
     card.onclick=()=>enterRoom(roomId);
     grid.appendChild(card);
   });
@@ -777,6 +821,8 @@ async function enterRoom(roomId){
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
+  // Mark room as read
+  await markRoomRead(roomId);
   subscribeMessages(roomId);
 
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
