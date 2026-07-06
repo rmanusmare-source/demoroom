@@ -827,8 +827,8 @@ async function enterRoom(roomId){
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
-  // Mark room as read
-  await markRoomRead(roomId);
+  // Mark room as read — wrapped in try-catch so Firebase permission issues don't block entry
+  try{ await markRoomRead(roomId); }catch(e){ console.warn('markRoomRead failed:',e.message); }
   subscribeMessages(roomId);
 
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
