@@ -577,28 +577,34 @@ let unreadData={};
 
 async function loadUnreadCounts(){
   unreadData={};
-  const userKey=currentUser.role==='rj'?'rohan':'shreya';
-  const lastReadSnap=await window._get(window._ref(window._db,`users/${userKey}/lastRead`));
-  const lastRead=lastReadSnap.exists()?lastReadSnap.val():{};
+  try{
+    const userKey=currentUser.role==='rj'?'rohan':'shreya';
+    const lastReadSnap=await window._get(window._ref(window._db,`users/${userKey}/lastRead`));
+    const lastRead=lastReadSnap.exists()?lastReadSnap.val():{};
 
-  await Promise.all(Object.keys(allRooms).map(async roomId=>{
-    const msgsSnap=await window._get(window._ref(window._db,`rooms/${roomId}/messages`));
-    if(!msgsSnap.exists()) return;
-    const msgs=Object.values(msgsSnap.val())
-      .filter(m=>m.type!=='scene')
-      .sort((a,b)=>a.ts-b.ts);
-    if(!msgs.length) return;
-    const lastMsg=msgs[msgs.length-1];
-    const lastReadTs=lastRead[roomId]||0;
-    const unreadMsgs=msgs.filter(m=>m.ts>lastReadTs&&m.sender!==currentUser.display);
-    if(unreadMsgs.length>0){
-      unreadData[roomId]={
-        count:unreadMsgs.length,
-        preview:lastMsg.text,
-        lastSender:lastMsg.sender,
-      };
-    }
-  }));
+    await Promise.all(Object.keys(allRooms).map(async roomId=>{
+      try{
+        const msgsSnap=await window._get(window._ref(window._db,`rooms/${roomId}/messages`));
+        if(!msgsSnap.exists()) return;
+        const msgs=Object.values(msgsSnap.val())
+          .filter(m=>m.type!=='scene')
+          .sort((a,b)=>a.ts-b.ts);
+        if(!msgs.length) return;
+        const lastMsg=msgs[msgs.length-1];
+        const lastReadTs=lastRead[roomId]||0;
+        const unreadMsgs=msgs.filter(m=>m.ts>lastReadTs&&m.sender!==currentUser.display);
+        if(unreadMsgs.length>0){
+          unreadData[roomId]={
+            count:unreadMsgs.length,
+            preview:lastMsg.text,
+            lastSender:lastMsg.sender,
+          };
+        }
+      }catch(e){ /* ignore per-room errors */ }
+    }));
+  }catch(e){
+    console.warn('Unread counts unavailable — check Firebase rules include users node.',e.message);
+  }
 }
 
 async function markRoomRead(roomId){
@@ -1060,9 +1066,6 @@ window.setTemperature=setTemperature;
 window.toggleDirectorPanel=toggleDirectorPanel;
 window.suggestSpicyScene=suggestSpicyScene;
 window.acceptSceneSuggestion=acceptSceneSuggestion;
-window.addCustomScene=addCustomScene;
-window.setAIDirection=setAIDirection;
-window.clearAIDirection=clearAIDirection;
 
 async function generateAutoScene(){
   if(!apiKey||isLoading) return;
