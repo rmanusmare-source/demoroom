@@ -567,9 +567,9 @@ async function loadRooms(){
       else if(roomNode&&roomNode.name) allRooms[roomId]=roomNode;
     });
   }
-  // Load last message and unread counts for each room
   await loadUnreadCounts();
   renderLobby();
+  startLobbyListener();
 }
 
 // unreadData = { roomId: { count, preview, lastSender } }
@@ -587,11 +587,12 @@ async function loadUnreadCounts(){
         const msgsSnap=await window._get(window._ref(window._db,`rooms/${roomId}/messages`));
         if(!msgsSnap.exists()) return;
         const msgs=Object.values(msgsSnap.val())
-          .filter(m=>m.type!=='scene')
+          .filter(m=>m.type!=='scene'&&m.sender&&m.text)
           .sort((a,b)=>a.ts-b.ts);
         if(!msgs.length) return;
         const lastMsg=msgs[msgs.length-1];
-        const lastReadTs=lastRead[roomId]||0;
+        // If never read this room, treat everything as unread
+        const lastReadTs=lastRead.hasOwnProperty(roomId)?lastRead[roomId]:0;
         const unreadMsgs=msgs.filter(m=>m.ts>lastReadTs&&m.sender!==currentUser.display);
         if(unreadMsgs.length>0){
           unreadData[roomId]={
@@ -600,17 +601,41 @@ async function loadUnreadCounts(){
             lastSender:lastMsg.sender,
           };
         }
-      }catch(e){ /* ignore per-room errors */ }
+      }catch(e){ console.warn('Room unread check failed:',roomId,e.message); }
     }));
   }catch(e){
-    console.warn('Unread counts unavailable — check Firebase rules include users node.',e.message);
+    console.warn('Unread counts failed — update Firebase rules to include users node.',e.message);
   }
 }
 
 async function markRoomRead(roomId){
-  const userKey=currentUser.role==='rj'?'rohan':'shreya';
-  await window._set(window._ref(window._db,`users/${userKey}/lastRead/${roomId}`),Date.now());
-  delete unreadData[roomId];
+  try{
+    const userKey=currentUser.role==='rj'?'rohan':'shreya';
+    await window._set(window._ref(window._db,`users/${userKey}/lastRead/${roomId}`),Date.now());
+    delete unreadData[roomId];
+  }catch(e){ console.warn('markRoomRead failed:',e.message); }
+}
+
+// Live lobby refresh — when any room gets a new message while in lobby, refresh badges
+let lobbyUnsubscribers=[];
+function startLobbyListener(){
+  stopLobbyListeners();
+  Object.keys(allRooms).forEach(roomId=>{
+    const msgsRef=window._ref(window._db,`rooms/${roomId}/messages`);
+    let initialLoad=true;
+    const unsub=window._onValue(msgsRef,async snap=>{
+      if(initialLoad){initialLoad=false;return;}
+      if(!snap.exists()) return;
+      // New message arrived — reload unread counts and re-render lobby
+      await loadUnreadCounts();
+      renderLobby();
+    });
+    lobbyUnsubscribers.push(unsub);
+  });
+}
+function stopLobbyListeners(){
+  lobbyUnsubscribers.forEach(u=>u());
+  lobbyUnsubscribers=[];
 }
 
 function renderLobby(){
@@ -738,7 +763,15 @@ async function saveRoom(){
     name:card.querySelector('.char-name-input').value.trim()||`Character ${i+1}`,
     gender:card.querySelector('.char-gender').value,
     age:parseInt(card.querySelector('.char-age').value)||null,
+    nationality:card.querySelector('.char-nationality').value.trim(),
     archetype:ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)].label,
+    commStyle:Array.from(card.querySelectorAll('.char-comm-style:checked')).map(c=>c.value),
+    interests:Array.from(card.querySelectorAll('.char-interest:checked')).map(c=>c.value),
+    kinks:Array.from(card.querySelectorAll('.char-kink:checked')).map(c=>c.value),
+    flaw:card.querySelector('.char-flaw').value,
+    backstory:card.querySelector('.char-backstory').value.trim(),
+    howMet:card.querySelector('.char-howmet').value.trim(),
+    quirks:card.querySelector('.char-quirks').value.trim(),
     desc:card.querySelector('.char-desc').value.trim(),
     coupleWith:card.querySelector('.char-couple').value||null,
     color:AI_COLORS[i%AI_COLORS.length],
@@ -755,6 +788,7 @@ window.saveRoom=saveRoom;
 
 // ── ENTER ROOM ──
 async function enterRoom(roomId){
+  stopLobbyListeners();
   const room=allRooms[roomId];
   // Safety check - Dee blocked from entering if not allowed
   if(currentUser.role==='dee' && room.deeCanAccess===false){
@@ -1322,26 +1356,36 @@ async function getAIResponse(charIdx){
 
   const othersDesc=characters.filter((_,i)=>i!==charIdx).map(c=>{
     const rel=c.name===char.coupleWith||char.name===c.coupleWith?' (your partner)':'';
-    const ageStr=c.age?`, ${c.age} years old`:'';
-    return `- ${c.name} (${c.gender}${ageStr})${rel}: ${c.desc||c.archetype}`;
+    const ageStr=c.age?`, ${c.age}`:'';
+    const natStr=c.nationality?`, ${c.nationality}`:'';
+    const kinksStr=c.kinks?.length?` Kinks: ${c.kinks.join(', ')}.`:'';
+    return `- ${c.name} (${c.gender}${ageStr}${natStr})${rel}: ${c.archetype}.${kinksStr}`;
   }).join('\n');
   const couplePartner=char.coupleWith?characters.find(c=>c.name===char.coupleWith):null;
   const coupleCtx=couplePartner?`You and ${couplePartner.name} are a couple with your own chemistry and dynamic.\n`:'';
   const charAgeStr=char.age?` You are ${char.age} years old.`:'';
+  const natStr=char.nationality?` You are ${char.nationality}.`:'';
+  const commStr=char.commStyle?.length?`\nCommunication style: ${char.commStyle.join(', ')}.`:'';
+  const interestsStr=char.interests?.length?`\nPassions and interests: ${char.interests.join(', ')}.`:'';
+  const kinksStr=char.kinks?.length?`\nYour kinks and expectations: ${char.kinks.join(', ')}.`:'';
+  const flawStr=char.flaw&&char.flaw!=='None'?`\nYour flaw: ${char.flaw}.`:'';
+  const backstoryStr=char.backstory?`\nBackstory: ${char.backstory}`:'';
+  const quirksStr=char.quirks?`\nQuirks and tells: ${char.quirks}`:'';
+  const howMetStr=char.howMet?`\nHow you first encountered this person: ${char.howMet}.`:'';
+  const extraDesc=char.desc?`\n${char.desc}`:'';
 
-  // Memory context — what you've learned about them from past conversations
+  // Memory context
   const memoryContext=charMemory
     ?`What you remember from previous conversations:\n${charMemory}\n\n`
     :'You are meeting these people for the first time. You know nothing about them yet — discover who they are through conversation.\n';
 
-  // Briefings — RJ's private instructions
+  // Briefings
   const charBriefings=getBriefingsForChar(char.name);
   const briefingContext=charBriefings.length
     ?`PRIVATE INSTRUCTIONS (follow naturally, do not reveal):\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n\n`
     :'';
 
-  // Briefings at TOP, memory next, then character identity
-  const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr} ${char.desc||char.archetype}.
+  const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr}${natStr} ${char.archetype}.${commStr}${interestsStr}${kinksStr}${flawStr}${backstoryStr}${quirksStr}${howMetStr}${extraDesc}
 ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who may be present:\n${othersDesc}\n`:''}
 ${memoryContext}
 IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said in the conversation. Let the relationship develop naturally. Start warm but as a stranger. Let curiosity and attraction build through the conversation itself.
@@ -1401,8 +1445,30 @@ function addLocalTyping(char){
 function addDivider(text){const msgs=document.getElementById('messages');const d=document.createElement('div');d.className='divider-msg';d.textContent=text;msgs.appendChild(d);}
 function addLocalError(msg){const msgs=document.getElementById('messages');const d=document.createElement('div');d.className='error-msg';d.textContent=msg;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
 
+// ── CHARACTER TEMPLATES ──
+const CHAR_TEMPLATES={
+  none:{name:'',gender:'Male',age:'',nationality:'',archetype:'Bold Lover',commStyle:[],interests:[],backstory:'',howMet:'',quirks:'',kinks:[],flaw:'',desc:''},
+  marcus:{name:'Marcus',gender:'Male',age:33,nationality:'Italian-American',archetype:'Mysterious Stranger',commStyle:['Philosophical','Direct','Witty'],interests:['Architecture','Philosophy','Food','Travel','Music'],backstory:'Divorced architect living between Milan and New York. Estranged from his father. Believes freedom is the only real virtue.',howMet:'On a flight',quirks:'Goes quiet when genuinely interested. Always asks one more question before leaving.',kinks:['Slow burn','Emotional connection first','Possessive'],flaw:'Emotionally unavailable',desc:''},
+  james:{name:'James',gender:'Male',age:37,nationality:'British',archetype:'Dominant',commStyle:['Direct','Blunt','Intense'],interests:['Business','Fitness','Architecture','Wine','Film'],backstory:'Senior partner at a London firm. Controlled exterior hiding something restless underneath. Has everything he wanted and finds it unsatisfying.',howMet:'Work connection, different office',quirks:'Precise with words. Long pauses before important things. Never raises his voice.',kinks:['Dominant','Power play','Possessive','Slow burn'],flaw:'Controlling',desc:''},
+  noah:{name:'Noah',gender:'Male',age:34,nationality:'Australian',archetype:'Wild & Free',commStyle:['Playful','Witty','Direct'],interests:['Travel','Fitness','Photography','Food','Music'],backstory:'Architect who gave up a partnership to travel. Lives out of two bags. No fixed address for three years.',howMet:'Strangers on a flight',quirks:'Laughs easily. Says exactly what he thinks. Gets serious suddenly and without warning.',kinks:['No strings','Casual','Exhibitionist'],flaw:'Restless',desc:''},
+  luca:{name:'Luca',gender:'Male',age:35,nationality:'Portuguese',archetype:'Romantic',commStyle:['Poetic','Intense','Philosophical'],interests:['Literature','Music','Food','Art','Film'],backstory:'Recently divorced. Writes late at night when he should be sleeping. Has been alone long enough to say things other people only think.',howMet:'Online, never met in person',quirks:'Uses silence intentionally. References books unexpectedly. Asks questions that feel too personal too fast.',kinks:['Emotional connection first','Slow burn','Voyeur'],flaw:'Overthinks',desc:''},
+  sophia:{name:'Sophia',gender:'Female',age:30,nationality:'French',archetype:'Playful Tease',commStyle:['Witty','Teasing','Direct'],interests:['Fashion','Art','Food','Literature','Travel'],backstory:'Gallerist in Paris. Disagrees with everything as a sport. Has been told she is intimidating so many times she started wearing it as a compliment.',howMet:'At a gallery opening',quirks:'Challenges every assumption. Laughs loudest at her own observations. Texts in fragments.',kinks:['Power play','Slow burn','Exhibitionist'],flaw:'Commitment phobic',desc:''},
+  zara:{name:'Zara',gender:'Female',age:29,nationality:'Spanish-French',archetype:'Bold Lover',commStyle:['Direct','Playful','Intense'],interests:['Dance','Travel','Food','Fashion','Photography'],backstory:'Grew up between Barcelona and Marseille. Never stayed anywhere long enough to feel settled. Comfortable everywhere and belonging nowhere.',howMet:'At a beach bar',quirks:'Physically warm — touches your arm when she talks to you. Zero filter. Somehow everyone is immediately comfortable around her.',kinks:['Exhibitionist','No strings','Casual','Voyeur'],flaw:'Restless',desc:''},
+  elara:{name:'Elara',gender:'Female',age:36,nationality:'Hungarian',archetype:'Mysterious Stranger',commStyle:['Quiet','Mysterious','Intense'],interests:['Art','Philosophy','Wine','Architecture','Film'],backstory:'Married to Sebastian. Former academic who left a PhD to travel. Observes everything. Decided she likes you before you sat down.',howMet:'Through her husband Sebastian at a party',quirks:'Speaks rarely but shifts the room when she does. Watches people the way most people watch films. Remembers everything.',kinks:['Dominant','Power play','Voyeur','Possessive'],flaw:'Secretive',coupleWith:'Sebastian',desc:''},
+  sebastian:{name:'Sebastian',gender:'Male',age:40,nationality:'Swiss',archetype:'Sophisticated',commStyle:['Direct','Quiet','Intense'],interests:['Architecture','Wine','Business','Art','Travel'],backstory:'Old money. Collected everything he was supposed to want. Now interested only in what surprises him.',howMet:'He and his wife Elara hosted the party',quirks:'Never rushed. Gives full attention when interested. Speaks like every sentence is considered.',kinks:['Voyeur','Power play','Dominant','Slow burn'],flaw:'Controlling',coupleWith:'Elara',desc:''},
+  matteo:{name:'Matteo',gender:'Male',age:32,nationality:'Italian',archetype:'Wild & Free',commStyle:['Playful','Witty','Direct'],interests:['Food','Travel','Music','Photography','Dance'],backstory:'Grew up in Florence, left at 22. Has a partner, Zara, who is the only person who has ever kept up with him.',howMet:'At a beach bar with Zara',quirks:'Warm immediately. Treats strangers like old friends. Gets competitive when another man is in the room.',kinks:['Casual','No strings','Exhibitionist'],flaw:'Jealous',coupleWith:'Zara',desc:''},
+  maya:{name:'Maya',gender:'Female',age:32,nationality:'American',archetype:'Romantic',commStyle:['Philosophical','Witty','Playful'],interests:['Literature','Fitness','Art','Food','Philosophy'],backstory:'Therapist in New York who knows exactly what everyone is doing emotionally including herself and does it anyway.',howMet:'Online, met at a conference',quirks:'Asks questions that feel like traps because they are. Laughs at the wrong moment. Remembers everything you said three conversations ago.',kinks:['Emotional connection first','Slow burn','Possessive'],flaw:'Jealous',desc:''},
+  isla:{name:'Isla',gender:'Female',age:28,nationality:'Irish',archetype:'Playful Tease',commStyle:['Witty','Playful','Direct'],interests:['Music','Literature','Travel','Food','Dance'],backstory:'Musician between Dublin and London. Has a theory that most people are more interesting drunk at 2am than sober at noon.',howMet:'At a late night bar',quirks:'Makes everything funny. Gets unexpectedly sincere and then pretends she did not. Texts in voice note length paragraphs.',kinks:['Casual','No strings','Exhibitionist','Slow burn'],flaw:'Commitment phobic',desc:''},
+};
+
+const COMM_STYLES=['Witty','Direct','Mysterious','Poetic','Blunt','Teasing','Philosophical','Intense','Playful','Quiet'];
+const INTERESTS_LIST=['Art','Architecture','Music','Literature','Food','Travel','Fashion','Film','Philosophy','Fitness','Nature','Business','Photography','Dance','Wine'];
+const KINKS_LIST=['Dominant','Submissive','Voyeur','Exhibitionist','Slow burn','Power play','Possessive','Casual','Emotional connection first','No strings'];
+const FLAWS=['None','Emotionally unavailable','Jealous','Commitment phobic','Secretive','Controlling','Restless','Overthinks','Too intense'];
+
 // ── CHAR CARDS ──
 function addCharacter(){addCharacterPrefilled({});}
+
 function addCharacterPrefilled(preset){
   const container=document.getElementById('characters-container');
   const idx=container.querySelectorAll('.char-card').length;
@@ -1411,26 +1477,75 @@ function addCharacterPrefilled(preset){
   const id=++cardCounter;
   const archIdx=Math.max(0,ARCHETYPES.findIndex(a=>a.label===preset.archetype));
   const card=document.createElement('div');card.className='char-card';card.dataset.id=id;
+
+  const templateOptions=Object.keys(CHAR_TEMPLATES).map(k=>`<option value="${k}">${k==='none'?'— Start from scratch —':CHAR_TEMPLATES[k].name+' ('+CHAR_TEMPLATES[k].nationality+')'}</option>`).join('');
+
+  const commStyleHtml=COMM_STYLES.map(s=>`<label style="display:flex;align-items:center;gap:4px;font-size:.75rem;cursor:pointer;"><input type="checkbox" class="char-comm-style" value="${s}" ${(preset.commStyle||[]).includes(s)?'checked':''}> ${s}</label>`).join('');
+  const interestsHtml=INTERESTS_LIST.map(s=>`<label style="display:flex;align-items:center;gap:4px;font-size:.75rem;cursor:pointer;"><input type="checkbox" class="char-interest" value="${s}" ${(preset.interests||[]).includes(s)?'checked':''}> ${s}</label>`).join('');
+  const kinksHtml=KINKS_LIST.map(s=>`<label style="display:flex;align-items:center;gap:4px;font-size:.75rem;cursor:pointer;"><input type="checkbox" class="char-kink" value="${s}" ${(preset.kinks||[]).includes(s)?'checked':''}> ${s}</label>`).join('');
+  const flawOptions=FLAWS.map(f=>`<option value="${f}" ${preset.flaw===f?'selected':''}>${f}</option>`).join('');
+
   card.innerHTML=`
     <div class="char-top">
       <div class="char-top-left"><div class="char-dot" style="background:var(${colorVar})"></div><span class="char-num">Character ${idx+1}</span></div>
-      <button class="btn-remove" onclick="removeCharacter(${id})">✕ Remove</button>
+      <button class="btn-remove" onclick="removeCharacter(${id})">✕</button>
     </div>
-    <div class="char-grid">
-      <div><label>Name</label><input type="text" class="char-name-input" placeholder="e.g. Aria, Dev…" value="${escHtml(preset.name||'')}"></div>
+    <div class="field">
+      <label>Start from template</label>
+      <select class="char-template" onchange="applyTemplate(this,${id})">
+        ${templateOptions}
+      </select>
+    </div>
+    <div class="char-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div><label>Name</label><input type="text" class="char-name-input" placeholder="Marcus" value="${escHtml(preset.name||'')}"></div>
+      <div><label>Age</label><input type="number" class="char-age" placeholder="28" value="${preset.age||''}" min="18" max="99"></div>
       <div><label>Gender</label><select class="char-gender">${GENDERS.map(g=>`<option value="${g}" ${preset.gender===g?'selected':''}>${g}</option>`).join('')}</select></div>
-      <div><label>Age</label><input type="number" class="char-age" placeholder="e.g. 28" value="${preset.age||''}" min="18" max="120"></div>
     </div>
     <div class="char-grid">
-      <div><label>Personality</label><select class="char-archetype" onchange="onArchetypeChange(this,${id})">${ARCHETYPES.map((a,j)=>`<option value="${j}" ${j===archIdx?'selected':''}>${a.label}</option>`).join('')}</select></div>
+      <div><label>Nationality</label><input type="text" class="char-nationality" placeholder="e.g. French, Italian…" value="${escHtml(preset.nationality||'')}"></div>
+      <div><label>Archetype</label><select class="char-archetype" onchange="onArchetypeChange(this,${id})">${ARCHETYPES.map((a,j)=>`<option value="${j}" ${j===archIdx?'selected':''}>${a.label}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>Communication Style (pick any)</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px;">${commStyleHtml}</div></div>
+    <div class="field"><label>Interests & Passions</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px;">${interestsHtml}</div></div>
+    <div class="field"><label>Kinks & Expectations</label><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:4px;">${kinksHtml}</div></div>
+    <div class="char-grid">
+      <div><label>Flaw</label><select class="char-flaw">${flawOptions}</select></div>
       <div><label>Couple with</label><select class="char-couple"><option value="">— None —</option></select></div>
     </div>
-    <div><label>Description</label><textarea class="char-desc" placeholder="How they speak, what makes them real…">${escHtml(preset.desc!==undefined?preset.desc:ARCHETYPES[0].desc)}</textarea></div>`;
+    <div class="field"><label>Backstory (1-2 sentences)</label><textarea class="char-backstory" style="height:52px;resize:none;" placeholder="Who are they? What shaped them?">${escHtml(preset.backstory||'')}</textarea></div>
+    <div class="field"><label>How they met Dee</label><input type="text" class="char-howmet" placeholder="e.g. On a flight, At a party, Online…" value="${escHtml(preset.howMet||'')}"></div>
+    <div class="field"><label>Quirks</label><textarea class="char-quirks" style="height:42px;resize:none;" placeholder="Specific behaviours, tells, habits…">${escHtml(preset.quirks||'')}</textarea></div>
+    <div class="field"><label>Extra description (optional)</label><textarea class="char-desc" style="height:42px;resize:none;" placeholder="Anything else…">${escHtml(preset.desc||'')}</textarea></div>`;
+
   container.appendChild(card);
   card.querySelector('.char-name-input').oninput=()=>renumberCards();
-  if(!preset.name) card.querySelector('.char-name-input').focus();
   renumberCards();
 }
+
+function applyTemplate(sel,id){
+  const key=sel.value;
+  if(key==='none') return;
+  const t=CHAR_TEMPLATES[key];
+  const card=document.querySelector(`.char-card[data-id="${id}"]`);
+  if(!card) return;
+  card.querySelector('.char-name-input').value=t.name||'';
+  card.querySelector('.char-age').value=t.age||'';
+  card.querySelector('.char-gender').value=t.gender||'Male';
+  card.querySelector('.char-nationality').value=t.nationality||'';
+  const archIdx=ARCHETYPES.findIndex(a=>a.label===t.archetype);
+  if(archIdx>=0) card.querySelector('.char-archetype').value=archIdx;
+  card.querySelector('.char-backstory').value=t.backstory||'';
+  card.querySelector('.char-howmet').value=t.howMet||'';
+  card.querySelector('.char-quirks').value=t.quirks||'';
+  card.querySelector('.char-flaw').value=t.flaw||'None';
+  card.querySelector('.char-desc').value=t.desc||'';
+  // Checkboxes
+  card.querySelectorAll('.char-comm-style').forEach(cb=>cb.checked=(t.commStyle||[]).includes(cb.value));
+  card.querySelectorAll('.char-interest').forEach(cb=>cb.checked=(t.interests||[]).includes(cb.value));
+  card.querySelectorAll('.char-kink').forEach(cb=>cb.checked=(t.kinks||[]).includes(cb.value));
+  renumberCards();
+}
+window.applyTemplate=applyTemplate;
 
 function removeCharacter(id){
   const card=document.querySelector(`.char-card[data-id="${id}"]`);if(card)card.remove();renumberCards();
