@@ -838,9 +838,6 @@ async function saveCast(){
 }
 window.saveCast=saveCast;
 
-// Override showScreen manage cast button
-document.querySelector('[onclick="showScreen(\'screen-manage-cast\')"]').onclick=showManageCast;
-
 // ── ENTER CONVERSATION ──
 async function enterChar(charId){
   stopLobbyListeners();
@@ -1678,6 +1675,8 @@ async function generatePortraitForChar(char,key){
   return null;
 }
 window.generatePortraitForChar=generatePortraitForChar;
+
+async function generatePortrait(cardId){
   const card=document.querySelector(`.char-card[data-id="${cardId}"]`);
   if(!card) return;
   const key=localStorage.getItem('venice_api_key')||apiKey;
