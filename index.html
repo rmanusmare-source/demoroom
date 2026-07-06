@@ -157,9 +157,35 @@ select option{background:var(--surface2);}
 .divider-msg{text-align:center;font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;padding:4px 0;}
 .error-msg{background:rgba(196,115,90,.08);border:1px solid rgba(196,115,90,.3);border-radius:8px;padding:8px 12px;font-size:.78rem;color:#c4735a;}
 .info-toast{background:var(--accent-glow);border:1px solid var(--border-gold);border-radius:8px;padding:8px 12px;font-size:.78rem;color:var(--accent);text-align:center;}
-</style>
+
+/* CAST MODAL */
+.cast-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;display:flex;align-items:flex-end;justify-content:center;}
+.cast-modal{background:var(--surface);border:1px solid var(--border-gold);border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;padding:24px 20px;}
+.cast-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.cast-modal-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-style:italic;color:var(--accent);}
+.cast-modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;}
+.char-profile{border:1px solid var(--border-gold);border-radius:12px;padding:16px;margin-bottom:12px;}
+.char-profile-name{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-style:italic;color:var(--text);margin-bottom:2px;}
+.char-profile-sub{font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;}
+.char-profile-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.char-tag{font-size:.7rem;padding:3px 9px;border-radius:20px;border:1px solid var(--border-gold);color:var(--text2);}
+.char-tag.kink{border-color:rgba(158,107,127,.4);color:var(--accent2);}
+.char-profile-section{margin-bottom:8px;}
+.char-profile-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
+.char-profile-text{font-size:.83rem;color:var(--text2);line-height:1.55;}</style>
 </head>
 <body>
+
+<!-- CAST MODAL -->
+<div class="cast-modal-overlay" id="cast-modal" style="display:none;" onclick="closeCastModal(event)">
+  <div class="cast-modal">
+    <div class="cast-modal-header">
+      <div class="cast-modal-title" id="cast-modal-title">The Cast</div>
+      <button class="cast-modal-close" onclick="closeCastModal()">✕</button>
+    </div>
+    <div id="cast-modal-body"></div>
+  </div>
+</div>
 
 <!-- LOGIN -->
 <div class="screen active" id="screen-login">
@@ -642,6 +668,9 @@ function renderLobby(){
         </div>
       </div>
       <div class="room-cast-row">${castHtml}</div>
+      <div style="margin-top:6px;">
+        <button onclick="showCastModal('${roomId}',event)" style="background:transparent;border:none;color:var(--accent);font-size:.7rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;letter-spacing:.06em;padding:0;font-family:'Jost',sans-serif;">View Cast</button>
+      </div>
       ${openingHtml}`;
 
     card.onclick=(e)=>{
@@ -652,7 +681,45 @@ function renderLobby(){
   });
 }
 
-window.showLobby=showLobby;
+function showCastModal(roomId,e){
+  if(e) e.stopPropagation();
+  const room=allRooms[roomId];
+  if(!room) return;
+  const chars=room.characters||[];
+  document.getElementById('cast-modal-title').textContent=room.name||'The Cast';
+  const body=document.getElementById('cast-modal-body');
+  body.innerHTML='';
+  chars.forEach((c,i)=>{
+    const color=`var(${AI_COLORS[i%AI_COLORS.length]})`;
+    const sub=[c.nationality,c.age?`${c.age} years old`:'',c.gender].filter(Boolean).join(' · ');
+    const commTags=(c.commStyle||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
+    const interestTags=(c.interests||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
+    const kinkTags=(c.kinks||[]).map(s=>`<span class="char-tag kink">${escHtml(s)}</span>`).join('');
+    const div=document.createElement('div');
+    div.className='char-profile';
+    div.style.borderColor=`${color.replace('var(','').replace(')','')}`.includes('--')?`var(${AI_COLORS[i%AI_COLORS.length]})`.replace('var(','rgba(').replace(')',',.3)'):'rgba(196,166,97,.2)';
+    div.innerHTML=`
+      <div class="char-profile-name" style="color:${color}">${escHtml(c.name)}</div>
+      <div class="char-profile-sub">${escHtml(sub)}</div>
+      ${c.backstory?`<div class="char-profile-section"><div class="char-profile-label">Backstory</div><div class="char-profile-text">${escHtml(c.backstory)}</div></div>`:''}
+      ${c.howMet?`<div class="char-profile-section"><div class="char-profile-label">How they met</div><div class="char-profile-text">${escHtml(c.howMet)}</div></div>`:''}
+      ${c.quirks?`<div class="char-profile-section"><div class="char-profile-label">Quirks</div><div class="char-profile-text">${escHtml(c.quirks)}</div></div>`:''}
+      ${c.flaw&&c.flaw!=='None'?`<div class="char-profile-section"><div class="char-profile-label">Flaw</div><div class="char-profile-text">${escHtml(c.flaw)}</div></div>`:''}
+      ${commTags?`<div class="char-profile-section"><div class="char-profile-label">Communication</div><div class="char-profile-row">${commTags}</div></div>`:''}
+      ${interestTags?`<div class="char-profile-section"><div class="char-profile-label">Interests</div><div class="char-profile-row">${interestTags}</div></div>`:''}
+      ${kinkTags?`<div class="char-profile-section"><div class="char-profile-label">Kinks & Expectations</div><div class="char-profile-row">${kinkTags}</div></div>`:''}`;
+    body.appendChild(div);
+  });
+  document.getElementById('cast-modal').style.display='flex';
+}
+
+function closeCastModal(e){
+  if(e&&e.target!==document.getElementById('cast-modal')) return;
+  document.getElementById('cast-modal').style.display='none';
+}
+
+window.showCastModal=showCastModal;
+window.closeCastModal=closeCastModal;
 
 // ── CREATE / EDIT ROOM ──
 function showCreateRoom(){
