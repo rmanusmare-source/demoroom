@@ -99,19 +99,29 @@ select option{background:var(--surface2);}
 /* Dee access pill */
 .dee-pill{font-size:.62rem;padding:2px 7px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:.08em;}
 
-/* CHARACTER GRID */
-.chars-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:640px;}
-@media(min-width:480px){.chars-grid{grid-template-columns:repeat(3,1fr);}}
-.char-lobby-card{background:var(--surface);border:1px solid var(--border-gold);border-radius:14px;padding:16px 14px;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;animation:slideIn .2s ease;}
-.char-lobby-card:hover{background:var(--surface2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,166,97,.08);}
-.char-lobby-avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border-gold);flex-shrink:0;}
-.char-lobby-avatar-placeholder{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:2px solid var(--border-gold);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-style:italic;}
-.char-lobby-name{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;color:var(--text);}
-.char-lobby-sub{font-size:.68rem;color:var(--muted);line-height:1.4;}
-.char-lobby-kinks{font-size:.65rem;color:var(--accent2);margin-top:2px;}
-.char-lobby-unread{position:absolute;top:10px;right:10px;background:var(--accent);color:var(--bg);border-radius:20px;padding:2px 7px;font-size:.63rem;font-weight:700;}
-.char-lobby-profile-btn{font-size:.65rem;color:var(--accent);background:transparent;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0;font-family:'Jost',sans-serif;margin-top:2px;}
-.char-lobby-dee-blocked{position:absolute;top:10px;left:10px;font-size:.6rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;}
+/* SWIPE LOBBY */
+.swipe-container{position:relative;width:100%;max-width:380px;height:520px;margin:0 auto;}
+.swipe-card{position:absolute;inset:0;border-radius:20px;overflow:hidden;cursor:grab;user-select:none;transition:transform .15s ease,box-shadow .15s ease;border:1px solid var(--border-gold);}
+.swipe-card:active{cursor:grabbing;}
+.swipe-card-img{width:100%;height:100%;object-fit:cover;display:block;}
+.swipe-card-img-placeholder{width:100%;height:100%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:5rem;font-style:italic;color:var(--accent);}
+.swipe-card-overlay{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(to top,rgba(9,8,10,.95) 0%,rgba(9,8,10,.6) 60%,transparent 100%);}
+.swipe-card-name{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-style:italic;color:var(--text);margin-bottom:2px;}
+.swipe-card-sub{font-size:.78rem;color:var(--text2);margin-bottom:8px;}
+.swipe-card-kinks{display:flex;gap:5px;flex-wrap:wrap;}
+.swipe-kink-tag{font-size:.65rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(158,107,127,.5);color:var(--accent2);}
+.swipe-card-unread{position:absolute;top:14px;right:14px;background:var(--accent);color:var(--bg);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;}
+.swipe-actions{display:flex;justify-content:center;align-items:center;gap:20px;margin-top:16px;}
+.swipe-btn{width:54px;height:54px;border-radius:50%;border:1px solid var(--border-gold);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all .15s;}
+.swipe-btn:hover{transform:scale(1.1);}
+.swipe-btn.enter{background:linear-gradient(135deg,#8a6a30,#c4a661);border:none;width:64px;height:64px;font-size:1rem;color:var(--bg);font-family:'Jost',sans-serif;font-weight:600;letter-spacing:.06em;}
+.swipe-counter{font-size:.72rem;color:var(--muted);text-align:center;margin-top:10px;letter-spacing:.08em;}
+.swipe-label{position:absolute;top:20px;left:20px;padding:6px 14px;border-radius:8px;font-size:.85rem;font-weight:600;letter-spacing:.06em;opacity:0;transition:opacity .15s;pointer-events:none;}
+.swipe-label.like{background:rgba(122,158,122,.2);border:2px solid #7a9e7a;color:#7a9e7a;}
+.swipe-label.nope{background:rgba(196,115,90,.2);border:2px solid #c4735a;color:#c4735a;left:auto;right:20px;}
+.swipe-profile-btn{font-size:.7rem;color:var(--accent);background:transparent;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0;font-family:'Jost',sans-serif;margin-top:6px;display:block;text-align:center;width:100%;}
+.char-lobby-dee-blocked{position:absolute;top:14px;left:14px;font-size:.6rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;background:rgba(0,0,0,.5);}
+.swipe-empty{text-align:center;color:var(--muted);font-size:.9rem;padding:40px;font-style:italic;}
 #characters-container{display:flex;flex-direction:column;gap:11px;margin-bottom:11px;}
 .char-card{background:var(--surface2);border:1px solid var(--border-gold);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .char-top{display:flex;align-items:center;justify-content:space-between;}
@@ -217,7 +227,7 @@ select option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- LOBBY — character cards -->
+<!-- LOBBY — swipe cards -->
 <div class="screen" id="screen-lobby">
   <div class="lobby-header">
     <div class="lobby-title">Salle Privée</div>
@@ -226,11 +236,20 @@ select option{background:var(--surface2);}
       <button class="btn-logout" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div class="chars-grid" id="chars-grid">
-    <div class="room-empty">Loading…</div>
+  <div id="swipe-wrapper" style="width:100%;max-width:640px;">
+    <div class="swipe-container" id="swipe-container">
+      <div class="swipe-empty">Loading…</div>
+    </div>
+    <div id="swipe-profile-link" style="min-height:24px;"></div>
+    <div class="swipe-actions">
+      <button class="swipe-btn" onclick="swipeLeft()" title="Skip">✕</button>
+      <button class="swipe-btn enter" onclick="enterCurrentChar()">Enter</button>
+      <button class="swipe-btn" onclick="swipeRight()" title="Next">→</button>
+    </div>
+    <div class="swipe-counter" id="swipe-counter"></div>
   </div>
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
-    <button class="btn btn-primary" onclick="showScreen('screen-manage-cast')">✦ Manage Cast</button>
+    <button class="btn btn-primary" onclick="showManageCast()">✦ Manage Cast</button>
     <button class="btn btn-secondary" style="margin-top:8px;" onclick="manualSeed()">↻ Load Default Characters</button>
   </div>
 </div>
@@ -555,44 +574,131 @@ function startLobbyListener(){
 }
 function stopLobbyListeners(){lobbyUnsubscribers.forEach(u=>u());lobbyUnsubscribers=[];}
 
+// ── SWIPE LOBBY ──
+let swipeQueue=[];   // charIds in order
+let swipeIndex=0;    // current card index
+
 function renderCharLobby(){
-  const grid=document.getElementById('chars-grid');
   let keys=Object.keys(allChars);
   if(currentUser.role==='dee') keys=keys.filter(id=>allChars[id].deeCanAccess!==false);
-  keys.sort((a,b)=>(unreadData[b]?1:0)-(unreadData[a]?1:0));
-  grid.innerHTML='';
-  if(!keys.length){
-    const empty=document.createElement('div');
-    empty.style.cssText='grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;padding:32px;border:1px solid var(--border-gold);border-radius:12px;';
-    empty.textContent=currentUser.role==='dee'?'No characters available yet.':'No characters yet. Add some.';
-    grid.appendChild(empty);return;
-  }
-  keys.forEach(charId=>{
-    const c=allChars[charId];
-    const unread=unreadData[charId];
-    const color=`var(${c.color||'--ai1'})`;
-    const card=document.createElement('div');
-    card.className='char-lobby-card';
-    const avatarHtml=c.avatar
-      ?`<img class="char-lobby-avatar" src="${c.avatar}" style="border-color:${color};">`
-      :`<div class="char-lobby-avatar-placeholder" style="border-color:${color};color:${color};">${c.name?.[0]||'?'}</div>`;
-    const sub=[c.nationality,c.age?`${c.age}`:'',c.archetype].filter(Boolean).join(' · ');
-    const kinksLine=c.kinks?.length?c.kinks.slice(0,2).join(', '):'';
-    const unreadBadge=unread?`<div class="char-lobby-unread">${unread.count}</div>`:'';
-    const deeBlocked=currentUser.role==='rj'&&c.deeCanAccess===false?`<div class="char-lobby-dee-blocked">Dee ✕</div>`:'';
-    const preview=unread?`<div style="font-size:.7rem;color:var(--text2);font-style:italic;margin-top:4px;overflow:hidden;max-height:36px;">"${escHtml(unread.preview.slice(0,60))}…"</div>`:'';
-    card.innerHTML=`
-      ${unreadBadge}${deeBlocked}
-      ${avatarHtml}
-      <div class="char-lobby-name" style="color:${color}">${escHtml(c.name||'')}</div>
-      <div class="char-lobby-sub">${escHtml(sub)}</div>
-      ${kinksLine?`<div class="char-lobby-kinks">${escHtml(kinksLine)}</div>`:''}
-      <button class="char-lobby-profile-btn" onclick="showCharProfile('${charId}',event)">View Profile</button>
-      ${preview}`;
-    card.onclick=(e)=>{if(!e.target.classList.contains('char-lobby-profile-btn'))openSettingPicker(charId);};
-    grid.appendChild(card);
+  // Unread first, then alphabetical
+  keys.sort((a,b)=>{
+    const ua=unreadData[a]?1:0, ub=unreadData[b]?1:0;
+    if(ub!==ua) return ub-ua;
+    return (allChars[a].name||'').localeCompare(allChars[b].name||'');
   });
+  swipeQueue=keys;
+  swipeIndex=0;
+  renderSwipeCard();
 }
+
+function renderSwipeCard(){
+  const container=document.getElementById('swipe-container');
+  const profileLink=document.getElementById('swipe-profile-link');
+  const counter=document.getElementById('swipe-counter');
+  container.innerHTML='';
+  profileLink.innerHTML='';
+
+  if(!swipeQueue.length){
+    container.innerHTML='<div class="swipe-empty">No characters yet.</div>';
+    counter.textContent='';
+    return;
+  }
+  if(swipeIndex>=swipeQueue.length) swipeIndex=0;
+
+  const charId=swipeQueue[swipeIndex];
+  const c=allChars[charId];
+  if(!c){swipeIndex++;renderSwipeCard();return;}
+
+  const color=`var(${c.color||'--ai1'})`;
+  const unread=unreadData[charId];
+  const sub=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(' · ');
+  const kinkTags=(c.kinks||[]).slice(0,3).map(k=>`<span class="swipe-kink-tag">${escHtml(k)}</span>`).join('');
+
+  const card=document.createElement('div');
+  card.className='swipe-card';
+  card.id='active-swipe-card';
+
+  const imgHtml=c.avatar
+    ?`<img class="swipe-card-img" src="${c.avatar}" draggable="false">`
+    :`<div class="swipe-card-img-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
+
+  card.innerHTML=`
+    ${imgHtml}
+    ${unread?`<div class="swipe-card-unread">${unread.count} new</div>`:''}
+    ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-lobby-dee-blocked">Dee ✕</div>':''}
+    <div class="swipe-label like" id="swipe-label-like">ENTER</div>
+    <div class="swipe-label nope" id="swipe-label-nope">SKIP</div>
+    <div class="swipe-card-overlay">
+      <div class="swipe-card-name">${escHtml(c.name||'')}</div>
+      <div class="swipe-card-sub">${escHtml(sub)}${c.archetype?` · ${escHtml(c.archetype)}`:''}</div>
+      <div class="swipe-card-kinks">${kinkTags}</div>
+    </div>`;
+
+  // Touch/mouse drag
+  let startX=0,startY=0,isDragging=false;
+  const onStart=(e)=>{
+    isDragging=true;
+    startX=e.touches?e.touches[0].clientX:e.clientX;
+    startY=e.touches?e.touches[0].clientY:e.clientY;
+  };
+  const onMove=(e)=>{
+    if(!isDragging) return;
+    const x=(e.touches?e.touches[0].clientX:e.clientX)-startX;
+    const y=(e.touches?e.touches[0].clientY:e.clientY)-startY;
+    const rot=x*0.08;
+    card.style.transform=`translate(${x}px,${y}px) rotate(${rot}deg)`;
+    card.style.transition='none';
+    document.getElementById('swipe-label-like').style.opacity=x>30?Math.min((x-30)/60,1):0;
+    document.getElementById('swipe-label-nope').style.opacity=x<-30?Math.min((-x-30)/60,1):0;
+  };
+  const onEnd=(e)=>{
+    if(!isDragging) return;
+    isDragging=false;
+    const x=(e.changedTouches?e.changedTouches[0].clientX:e.clientX)-startX;
+    card.style.transition='';
+    if(x>80){animateSwipe('right');}
+    else if(x<-80){animateSwipe('left');}
+    else{card.style.transform='';card.style.transition='transform .3s ease';}
+  };
+  card.addEventListener('mousedown',onStart);
+  card.addEventListener('touchstart',onStart,{passive:true});
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('touchmove',onMove,{passive:true});
+  window.addEventListener('mouseup',onEnd);
+  window.addEventListener('touchend',onEnd);
+
+  container.appendChild(card);
+  counter.textContent=`${swipeIndex+1} of ${swipeQueue.length}`;
+  profileLink.innerHTML=`<button class="swipe-profile-btn" onclick="showCharProfile('${charId}')">View Profile</button>`;
+}
+
+function animateSwipe(dir){
+  const card=document.getElementById('active-swipe-card');
+  if(!card) return;
+  const x=dir==='right'?600:-600;
+  card.style.transition='transform .35s ease,opacity .35s ease';
+  card.style.transform=`translate(${x}px,-20px) rotate(${dir==='right'?20:-20}deg)`;
+  card.style.opacity='0';
+  setTimeout(()=>{
+    if(dir==='right') swipeIndex=(swipeIndex+1)%swipeQueue.length;
+    else swipeIndex=(swipeIndex+1)%swipeQueue.length;
+    renderSwipeCard();
+  },350);
+}
+
+function swipeLeft(){ animateSwipe('left'); }
+function swipeRight(){ animateSwipe('right'); }
+
+function enterCurrentChar(){
+  if(!swipeQueue.length) return;
+  const charId=swipeQueue[swipeIndex];
+  openSettingPicker(charId);
+}
+
+window.swipeLeft=swipeLeft;
+window.swipeRight=swipeRight;
+window.enterCurrentChar=enterCurrentChar;
 
 // ── PROFILE MODAL ──
 function showCharProfile(charId,e){
@@ -612,7 +718,7 @@ function showCharProfile(charId,e){
         <div><div class="char-profile-name" style="color:${color}">${escHtml(c.name||'')}</div><div class="char-profile-sub">${escHtml(sub)}</div></div>
       </div>
       ${c.backstory?`<div class="char-profile-section"><div class="char-profile-label">Backstory</div><div class="char-profile-text">${escHtml(c.backstory)}</div></div>`:''}
-      ${c.howMet?`<div class="char-profile-section"><div class="char-profile-label">How we met</div><div class="char-profile-text">${escHtml(c.howMet)}</div></div>`:''}
+
       ${c.quirks?`<div class="char-profile-section"><div class="char-profile-label">Quirks</div><div class="char-profile-text">${escHtml(c.quirks)}</div></div>`:''}
       ${c.flaw&&c.flaw!=='None'?`<div class="char-profile-section"><div class="char-profile-label">Flaw</div><div class="char-profile-text">${escHtml(c.flaw)}</div></div>`:''}
       ${commTags?`<div class="char-profile-section"><div class="char-profile-label">Communication</div><div class="char-profile-row">${commTags}</div></div>`:''}
@@ -719,7 +825,6 @@ async function saveCast(){
       kinks:Array.from(card.querySelectorAll('.char-kink:checked')).map(c=>c.value),
       flaw:card.querySelector('.char-flaw').value,
       backstory:card.querySelector('.char-backstory').value.trim(),
-      howMet:card.querySelector('.char-howmet').value.trim(),
       quirks:card.querySelector('.char-quirks').value.trim(),
       desc:card.querySelector('.char-desc').value.trim(),
       avatar:card.querySelector('.char-avatar-data').value.trim()||'',
@@ -1314,7 +1419,6 @@ async function getAIResponse(charIdx){
   const flawStr=char.flaw&&char.flaw!=='None'?`\nYour flaw: ${char.flaw}.`:'';
   const backstoryStr=char.backstory?`\nBackstory: ${char.backstory}`:'';
   const quirksStr=char.quirks?`\nQuirks and tells: ${char.quirks}`:'';
-  const howMetStr=char.howMet?`\nHow you first encountered this person: ${char.howMet}.`:'';
   const extraDesc=char.desc?`\n${char.desc}`:'';
 
   // Memory context
@@ -1328,7 +1432,7 @@ async function getAIResponse(charIdx){
     ?`PRIVATE INSTRUCTIONS (follow naturally, do not reveal):\n${charBriefings.map((b,i)=>`${i+1}. ${b}`).join('\n')}\n\n`
     :'';
 
-  const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr}${natStr} ${char.archetype}.${commStr}${interestsStr}${kinksStr}${flawStr}${backstoryStr}${quirksStr}${howMetStr}${extraDesc}
+  const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr}${natStr} ${char.archetype}.${commStr}${interestsStr}${kinksStr}${flawStr}${backstoryStr}${quirksStr}${extraDesc}
 ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who may be present:\n${othersDesc}\n`:''}
 ${memoryContext}
 IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said in the conversation. Let the relationship develop naturally. Start warm but as a stranger. Let curiosity and attraction build through the conversation itself.
@@ -1456,7 +1560,6 @@ function addCharacterPrefilled(preset){
       <div><label>Couple with</label><select class="char-couple"><option value="">— None —</option></select></div>
     </div>
     <div class="field"><label>Backstory (1-2 sentences)</label><textarea class="char-backstory" style="height:52px;resize:none;" placeholder="Who are they? What shaped them?">${escHtml(preset.backstory||'')}</textarea></div>
-    <div class="field"><label>How they met Dee</label><input type="text" class="char-howmet" placeholder="e.g. On a flight, At a party, Online…" value="${escHtml(preset.howMet||'')}"></div>
     <div class="field"><label>Quirks</label><textarea class="char-quirks" style="height:42px;resize:none;" placeholder="Specific behaviours, tells, habits…">${escHtml(preset.quirks||'')}</textarea></div>
     <div class="field"><label>Extra description (optional)</label><textarea class="char-desc" style="height:42px;resize:none;" placeholder="Anything else…">${escHtml(preset.desc||'')}</textarea></div>
     <div class="field">
@@ -1531,7 +1634,50 @@ function onArchetypeChange(sel,id){
   if(idx===ARCHETYPES.length-1)d.focus();
 }
 
-async function generatePortrait(cardId){
+async function generatePortraitForChar(char,key){
+  const genderDesc=char.gender==='Female'?'woman':char.gender==='Male'?'man':'person';
+  const nat=char.nationality||'';
+  const age=char.age||30;
+  const interests=(char.interests||[]).slice(0,3).join(', ');
+  const archetype=(char.archetype||'').toLowerCase();
+
+  // Realistic portrait — not supermodel, natural and human
+  const styleMap={
+    'sophisticated':'well-dressed, refined, natural confidence, professional editorial portrait',
+    'wild & free':'relaxed, natural, windswept, candid outdoor portrait',
+    'dominant':'strong presence, direct gaze, quiet authority, understated style',
+    'romantic':'warm, gentle, soft expression, golden hour light',
+    'playful tease':'bright eyes, hint of a smile, casual and approachable',
+    'mysterious stranger':'contemplative, slightly turned away, moody natural light',
+    'bold lover':'confident, direct, naturally attractive without trying',
+    'submissive':'gentle, warm, soft eyes, natural expression',
+  };
+  const styleHint=styleMap[archetype]||'natural, candid, authentic portrait';
+
+  const prompt=`Portrait photograph of a real-looking ${age}-year-old ${nat} ${genderDesc}. ${styleHint}. Natural lighting, authentic expression, not a supermodel — real and human. Shallow depth of field, honest face, candid feel. No makeup, no glam. Real person. High quality photography.`;
+
+  try{
+    const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'fluently-xl',
+        prompt,
+        negative_prompt:'supermodel, perfect, glamour, airbrushed, fake, cartoon, anime, illustration, nsfw, nude',
+        width:512,height:640,
+        steps:25,cfg_scale:6.5,
+        safe_mode:false,return_binary:false,format:'webp',
+      })
+    });
+    if(res.ok){
+      const data=await res.json();
+      const b64=data.images?.[0];
+      if(b64) return `data:image/webp;base64,${b64}`;
+    }
+  }catch(e){console.error('Portrait gen failed:',e);}
+  return null;
+}
+window.generatePortraitForChar=generatePortraitForChar;
   const card=document.querySelector(`.char-card[data-id="${cardId}"]`);
   if(!card) return;
   const key=localStorage.getItem('venice_api_key')||apiKey;
@@ -1628,15 +1774,12 @@ async function manualSeed(){
     const rooms=buildDefaultRooms();
     for(const room of rooms){
       try{
-        // Seed each character individually into characters/ path
         const chars=room.characters||[];
         for(const char of chars){
           const charId=char.name.toLowerCase().replace(/[^a-z0-9]/g,'_');
           const charData={...char,deeCanAccess:true};
-          // Remove null/undefined
           Object.keys(charData).forEach(k=>{if(charData[k]===null||charData[k]===undefined)charData[k]='';});
           await window._set(window._ref(window._db,`characters/${charId}`),charData);
-          // Add opening message if none exists
           const msgSnap=await window._get(window._ref(window._db,`conversations/${charId}/messages`));
           if(!msgSnap.exists()&&room.openingChar===char.name&&room.openingMsg){
             await window._push(window._ref(window._db,`conversations/${charId}/messages`),{
@@ -1645,6 +1788,14 @@ async function manualSeed(){
           }
           seeded++;
           if(btn) btn.textContent=`Seeding ${seeded}...`;
+          // Generate portrait if none exists
+          if(!charData.avatar&&key){
+            if(btn) btn.textContent=`Generating portrait for ${char.name}...`;
+            const portrait=await generatePortraitForChar(char,key);
+            if(portrait){
+              await window._set(window._ref(window._db,`characters/${charId}/avatar`),portrait);
+            }
+          }
         }
       }catch(e){console.error('Seed error:',e);}
     }
