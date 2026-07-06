@@ -99,7 +99,19 @@ select option{background:var(--surface2);}
 /* Dee access pill */
 .dee-pill{font-size:.62rem;padding:2px 7px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:.08em;}
 
-/* CHAR CARDS */
+/* CHARACTER GRID */
+.chars-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:640px;}
+@media(min-width:480px){.chars-grid{grid-template-columns:repeat(3,1fr);}}
+.char-lobby-card{background:var(--surface);border:1px solid var(--border-gold);border-radius:14px;padding:16px 14px;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;animation:slideIn .2s ease;}
+.char-lobby-card:hover{background:var(--surface2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,166,97,.08);}
+.char-lobby-avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border-gold);flex-shrink:0;}
+.char-lobby-avatar-placeholder{width:72px;height:72px;border-radius:50%;background:var(--surface2);border:2px solid var(--border-gold);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-style:italic;}
+.char-lobby-name{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;color:var(--text);}
+.char-lobby-sub{font-size:.68rem;color:var(--muted);line-height:1.4;}
+.char-lobby-kinks{font-size:.65rem;color:var(--accent2);margin-top:2px;}
+.char-lobby-unread{position:absolute;top:10px;right:10px;background:var(--accent);color:var(--bg);border-radius:20px;padding:2px 7px;font-size:.63rem;font-weight:700;}
+.char-lobby-profile-btn{font-size:.65rem;color:var(--accent);background:transparent;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0;font-family:'Jost',sans-serif;margin-top:2px;}
+.char-lobby-dee-blocked{position:absolute;top:10px;left:10px;font-size:.6rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;}
 #characters-container{display:flex;flex-direction:column;gap:11px;margin-bottom:11px;}
 .char-card{background:var(--surface2);border:1px solid var(--border-gold);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .char-top{display:flex;align-items:center;justify-content:space-between;}
@@ -205,7 +217,7 @@ select option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- LOBBY -->
+<!-- LOBBY — character cards -->
 <div class="screen" id="screen-lobby">
   <div class="lobby-header">
     <div class="lobby-title">Salle Privée</div>
@@ -214,61 +226,49 @@ select option{background:var(--surface2);}
       <button class="btn-logout" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div class="rooms-grid" id="rooms-grid">
-    <div class="room-empty" id="rooms-empty">No rooms yet. RJ can create one below.</div>
+  <div class="chars-grid" id="chars-grid">
+    <div class="room-empty">Loading…</div>
   </div>
-  <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-create-btn-wrap">
-    <button class="btn btn-primary" onclick="showScreen('screen-create-room')">＋ Create New Room</button>
-    <button class="btn btn-secondary" style="margin-top:8px;" onclick="manualSeed()">↻ Load Default Rooms</button>
+  <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
+    <button class="btn btn-primary" onclick="showScreen('screen-manage-cast')">✦ Manage Cast</button>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="manualSeed()">↻ Load Default Characters</button>
   </div>
 </div>
 
-<!-- CREATE / EDIT ROOM -->
-<div class="screen" id="screen-create-room">
-  <div class="card wide-card">
-    <div class="title" id="create-room-title">New Room</div>
-    <div class="sub">Define the vibe and cast</div>
+<!-- SETTING PICKER — slides up before entering chat -->
+<div class="cast-modal-overlay" id="setting-picker" style="display:none;" onclick="closeSettingPicker(event)">
+  <div class="cast-modal" style="max-height:60vh;">
+    <div class="cast-modal-header">
+      <div class="cast-modal-title" id="setting-picker-title">Set the Scene</div>
+      <button class="cast-modal-close" onclick="closeSettingPicker()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;" id="setting-options"></div>
+    <button class="btn btn-primary" onclick="confirmSetting()">Enter →</button>
+  </div>
+</div>
 
-    <div class="field">
-      <label>Room Name</label>
-      <input type="text" id="room-name-input" placeholder="e.g. The Penthouse, Goa Weekend, Late Night…">
-    </div>
-    <div class="field">
-      <label>Vibe / Setting</label>
-      <textarea id="room-vibe-input" style="height:60px;resize:none;" placeholder="e.g. Luxury penthouse, late evening, candles and music. Everyone is relaxed and flirty."></textarea>
-    </div>
+<!-- MANAGE CAST — RJ only -->
+<div class="screen" id="screen-manage-cast">
+  <div class="card wide-card">
+    <div class="title">Manage Cast</div>
+    <div class="sub">Add · Edit · Remove Characters</div>
     <div class="field">
       <label>Venice API Key</label>
-      <input type="password" id="room-api-key" placeholder="vapi_..." autocomplete="off">
+      <input type="password" id="cast-api-key" placeholder="vapi_..." autocomplete="off">
     </div>
     <div class="field">
       <label>Model</label>
-      <select id="room-model">
-        <option value="llama-3.3-70b">Llama 3.3 70B — Private · Fast</option>
-        <option value="mistral-31-24b">Mistral 31 24B — Private</option>
-        <option value="llama-3.1-405b">Llama 3.1 405B — Private · Smartest</option>
-        <option value="deepseek-r1-671b">DeepSeek R1 671B — Private</option>
+      <select id="cast-model">
+        <option value="llama-3.3-70b">Llama 3.3 70B — Fast</option>
+        <option value="mistral-31-24b">Mistral 31 24B</option>
+        <option value="llama-3.1-405b">Llama 3.1 405B — Smartest</option>
+        <option value="deepseek-r1-671b">DeepSeek R1 671B</option>
       </select>
     </div>
-
-    <div class="field">
-      <label>Room Type</label>
-      <select id="room-type">
-        <option value="in-person">In-Person (with scene descriptions)</option>
-        <option value="online">Online (texting/video, no scenes)</option>
-      </select>
-    </div>
-
-    <div class="field" style="display:flex;align-items:center;gap:8px;">
-      <input type="checkbox" id="dee-access" checked style="width:16px;height:16px;cursor:pointer;">
-      <label style="margin:0;cursor:pointer;">Allow Dee to enter this room</label>
-    </div>
-
     <div class="field"><label>Characters</label></div>
     <div id="characters-container"></div>
     <button class="btn-ghost" onclick="addCharacter()">＋ Add Character</button>
-
-    <button class="btn btn-primary" onclick="saveRoom()">Save Room →</button>
+    <button class="btn btn-primary" onclick="saveCast()">Save Cast →</button>
     <button class="btn btn-secondary" onclick="showLobby()">← Back</button>
   </div>
 </div>
@@ -282,7 +282,7 @@ select option{background:var(--surface2);}
         <div class="conn-dot"></div>
         <div class="who-badge" id="who-badge"></div>
         <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
-        <button class="btn-back" onclick="backToLobby()" style="white-space:nowrap;">← Rooms</button>
+        <button class="btn-back" onclick="backToLobby()" style="white-space:nowrap;">← Back</button>
       </div>
     </div>
     <div class="participants" id="participants-display" style="width:100%;margin-top:5px;justify-content:flex-start;"></div>
@@ -394,19 +394,21 @@ const ARCHETYPES=[
 const GENDERS=['Male','Female','Non-binary'];
 
 let currentUser=null;
-let currentRoomId=null;
-let currentRoomData=null;
-let currentTemperature=2; // 1=Casual, 2=Flirty, 3=Spicy, 4=Explicit
-let allRooms={};
-let characters=[];
+let currentCharId=null;   // active character ID (replaces currentRoomId)
+let currentCharData=null; // active character data
+let currentSetting=null;  // {type:'online'|'in-person', vibe:string}
+let currentTemperature=2;
+let allChars={};          // all characters from Firebase
+let characters=[];        // characters in current conversation (usually 1)
 let apiKey='';
 let selectedModel='llama-3.3-70b';
 let isLoading=false;
 let msgUnsubscribe=null;
 let knownMsgKeys=new Set();
 let lastResponderIdx=null;
-let editingRoomId=null;
+let editingCharId=null;
 let cardCounter=0;
+let pendingCharId=null;   // character waiting for setting picker
 
 
 // ── DEFAULT ROOMS ── built after CHAR_TEMPLATES is defined
@@ -451,8 +453,7 @@ async function doLogin(){
     apiKey=localStorage.getItem('venice_api_key')||'';
     await showLobby();
     await seedDefaultRooms();
-    await loadRooms();
-    renderLobby();
+    await loadChars();
   } else {
     await showLobby();
   }
@@ -461,7 +462,7 @@ window.doLogin=doLogin;
 
 function doLogout(){
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
-  currentUser=null;currentRoomId=null;currentRoomData=null;
+  currentUser=null;currentCharId=null;currentCharData=null;
   localStorage.removeItem('session_user');
   document.getElementById('login-username').value='';
   document.getElementById('login-password').value='';
@@ -478,8 +479,7 @@ async function restoreSession(){
     apiKey=localStorage.getItem('venice_api_key')||'';
     await showLobby();
     await seedDefaultRooms();
-    await loadRooms();
-    renderLobby();
+    await loadChars();
   } else {
     await showLobby();
   }
@@ -489,32 +489,23 @@ window._onFirebaseReady=restoreSession;
 // ── LOBBY ──
 async function showLobby(){
   showScreen('screen-lobby');
-  // Who badge
   const badge=document.getElementById('lobby-who-badge');
   badge.textContent=currentUser.display;
   badge.style.borderColor=`var(${currentUser.color})`;
   badge.style.color=`var(${currentUser.color})`;
-  // Hide create button for Dee
-  document.getElementById('rj-create-btn-wrap').style.display=currentUser.role==='rj'?'block':'none';
-  await loadRooms();
+  document.getElementById('rj-manage-btn-wrap').style.display=currentUser.role==='rj'?'block':'none';
+  await loadChars();
 }
 
-async function loadRooms(){
-  const snap=await window._get(window._ref(window._db,'rooms'));
-  allRooms={};
-  if(snap.exists()){
-    const raw=snap.val();
-    Object.entries(raw).forEach(([roomId,roomNode])=>{
-      if(roomNode&&roomNode.meta) allRooms[roomId]=roomNode.meta;
-      else if(roomNode&&roomNode.name) allRooms[roomId]=roomNode;
-    });
-  }
+async function loadChars(){
+  const snap=await window._get(window._ref(window._db,'characters'));
+  allChars={};
+  if(snap.exists()) allChars=snap.val();
   await loadUnreadCounts();
-  renderLobby();
+  renderCharLobby();
   startLobbyListener();
 }
 
-// unreadData = { roomId: { count, preview, lastSender } }
 let unreadData={};
 
 async function loadUnreadCounts(){
@@ -523,367 +514,275 @@ async function loadUnreadCounts(){
     const userKey=currentUser.role==='rj'?'rohan':'shreya';
     const lastReadSnap=await window._get(window._ref(window._db,`users/${userKey}/lastRead`));
     const lastRead=lastReadSnap.exists()?lastReadSnap.val():{};
-
-    await Promise.all(Object.keys(allRooms).map(async roomId=>{
+    await Promise.all(Object.keys(allChars).map(async charId=>{
+      const char=allChars[charId];
+      if(char.deeCanAccess===false&&currentUser.role==='dee') return;
       try{
-        const msgsSnap=await window._get(window._ref(window._db,`rooms/${roomId}/messages`));
+        const msgsSnap=await window._get(window._ref(window._db,`conversations/${charId}/messages`));
         if(!msgsSnap.exists()) return;
-        const msgs=Object.values(msgsSnap.val())
-          .filter(m=>m.type!=='scene'&&m.sender&&m.text)
-          .sort((a,b)=>a.ts-b.ts);
+        const msgs=Object.values(msgsSnap.val()).filter(m=>m.sender&&m.text).sort((a,b)=>a.ts-b.ts);
         if(!msgs.length) return;
         const lastMsg=msgs[msgs.length-1];
-        // If never read this room, treat everything as unread
-        const lastReadTs=lastRead.hasOwnProperty(roomId)?lastRead[roomId]:0;
+        const lastReadTs=lastRead.hasOwnProperty(charId)?lastRead[charId]:0;
         const unreadMsgs=msgs.filter(m=>m.ts>lastReadTs&&m.sender!==currentUser.display);
-        if(unreadMsgs.length>0){
-          unreadData[roomId]={
-            count:unreadMsgs.length,
-            preview:lastMsg.text,
-            lastSender:lastMsg.sender,
-          };
-        }
-      }catch(e){ console.warn('Room unread check failed:',roomId,e.message); }
+        if(unreadMsgs.length>0) unreadData[charId]={count:unreadMsgs.length,preview:lastMsg.text,lastSender:lastMsg.sender};
+      }catch(e){}
     }));
-  }catch(e){
-    console.warn('Unread counts failed — update Firebase rules to include users node.',e.message);
-  }
+  }catch(e){ console.warn('Unread counts failed:',e.message); }
 }
 
-async function markRoomRead(roomId){
+async function markRoomRead(charId){
   try{
     const userKey=currentUser.role==='rj'?'rohan':'shreya';
-    await window._set(window._ref(window._db,`users/${userKey}/lastRead/${roomId}`),Date.now());
-    delete unreadData[roomId];
-  }catch(e){ console.warn('markRoomRead failed:',e.message); }
+    await window._set(window._ref(window._db,`users/${userKey}/lastRead/${charId}`),Date.now());
+    delete unreadData[charId];
+  }catch(e){}
 }
 
-// Live lobby refresh — when any room gets a new message while in lobby, refresh badges
 let lobbyUnsubscribers=[];
 function startLobbyListener(){
   stopLobbyListeners();
-  Object.keys(allRooms).forEach(roomId=>{
-    const msgsRef=window._ref(window._db,`rooms/${roomId}/messages`);
-    let initialLoad=true;
+  Object.keys(allChars).forEach(charId=>{
+    const msgsRef=window._ref(window._db,`conversations/${charId}/messages`);
+    let init=true;
     const unsub=window._onValue(msgsRef,async snap=>{
-      if(initialLoad){initialLoad=false;return;}
-      if(!snap.exists()) return;
-      // New message arrived — reload unread counts and re-render lobby
+      if(init){init=false;return;}
       await loadUnreadCounts();
-      renderLobby();
+      renderCharLobby();
     });
     lobbyUnsubscribers.push(unsub);
   });
 }
-function stopLobbyListeners(){
-  lobbyUnsubscribers.forEach(u=>u());
-  lobbyUnsubscribers=[];
-}
+function stopLobbyListeners(){lobbyUnsubscribers.forEach(u=>u());lobbyUnsubscribers=[];}
 
-// Room mood icons
-const ROOM_ICONS={
-  'default_seduction':'🕯️',
-  'default_confessions':'🌙',
-  'default_penthouse':'🥂',
-  'default_flight':'✈️',
-  'default_colleague':'🖤',
-  'default_goa':'🌴',
-  'default_photographer':'📸',
-  'default_deepwaters':'🌊',
-};
-function getRoomIcon(roomId,room){
-  if(ROOM_ICONS[roomId]) return ROOM_ICONS[roomId];
-  if(room.roomType==='online') return '💬';
-  return '🕯️';
-}
-
-function renderLobby(){
-  const grid=document.getElementById('rooms-grid');
-  let keys=Object.keys(allRooms);
-  if(currentUser.role==='dee'){
-    keys=keys.filter(roomId=>allRooms[roomId].deeCanAccess!==false);
-  }
-  // Sort — unread first
+function renderCharLobby(){
+  const grid=document.getElementById('chars-grid');
+  let keys=Object.keys(allChars);
+  if(currentUser.role==='dee') keys=keys.filter(id=>allChars[id].deeCanAccess!==false);
   keys.sort((a,b)=>(unreadData[b]?1:0)-(unreadData[a]?1:0));
-
   grid.innerHTML='';
   if(!keys.length){
     const empty=document.createElement('div');
-    empty.className='room-empty';
-    empty.textContent=currentUser.role==='dee'?'No rooms available yet.':'No rooms yet.';
-    grid.appendChild(empty);
-    return;
+    empty.style.cssText='grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;padding:32px;border:1px solid var(--border-gold);border-radius:12px;';
+    empty.textContent=currentUser.role==='dee'?'No characters available yet.':'No characters yet. Add some.';
+    grid.appendChild(empty);return;
   }
-
-  keys.forEach(roomId=>{
-    const room=allRooms[roomId];
-    const unread=unreadData[roomId];
-    const chars=room.characters||[];
-    const icon=getRoomIcon(roomId,room);
-    const typeLabel=room.roomType==='online'?'Online':'In Person';
-    const temp=room.temperature||2;
-
-    // Temperature dots
-    const tempDots=[1,2,3,4].map(i=>`<span class="temp-dot ${i<=temp?'filled':'empty'}"></span>`).join('');
-
-    // Cast chips
-    const castHtml=chars.map((c,i)=>{
-      const color=`var(${AI_COLORS[i%AI_COLORS.length]})`;
-      const detail=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(', ');
-      const avatarHtml=c.avatar
-        ?`<img src="${c.avatar}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid ${color};flex-shrink:0;">`
-        :`<span style="width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid ${color};display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;color:${color};flex-shrink:0;">${c.name[0]}</span>`;
-      return `<span class="cast-chip">${avatarHtml}<span class="cast-chip-name" style="color:${color}">${escHtml(c.name)}</span>${detail?`<span class="cast-chip-detail"> · ${escHtml(detail)}</span>`:''}${c.kinks?.length?`<span class="cast-chip-detail"> · ${escHtml(c.kinks.slice(0,2).join(', '))}</span>`:''}</span>`;
-    }).join('<span style="color:var(--border);margin:0 2px;">·</span>');
-
-    // Opening line preview
-    let openingHtml='';
-    if(unread){
-      openingHtml=`<div class="room-opening"><div class="room-opening-sender">${escHtml(unread.lastSender)}</div>${escHtml(unread.preview.slice(0,100))}${unread.preview.length>100?'…':''}</div>`;
-    } else {
-      // Show the room's first message as preview
-      const openingRoom=Object.values(DEFAULT_ROOMS||[]).find?.(r=>r.id===roomId);
-      const openingMsg=room.openingMsg||'';
-      const openingChar=room.openingChar||'';
-      if(openingMsg){
-        openingHtml=`<div class="room-opening"><div class="room-opening-sender">${escHtml(openingChar)}</div>${escHtml(openingMsg.slice(0,100))}${openingMsg.length>100?'…':''}</div>`;
-      }
-    }
-
-    // RJ-only controls
-    const unreadBadge=unread?`<span class="room-unread-badge">${unread.count}</span>`:'';
-    let editBtns='';
-    if(currentUser.role==='rj'){
-      const deeOk=room.deeCanAccess!==false;
-      editBtns=`<span class="dee-pill" style="border-color:${deeOk?'rgba(122,158,122,.4)':'rgba(196,115,90,.3)'};color:${deeOk?'#7a9e7a':'#c4735a'}">${deeOk?'Dee ✓':'Dee ✕'}</span><button class="btn-icon" onclick="editRoom('${roomId}',event)">✎</button><button class="btn-icon danger" onclick="deleteRoom('${roomId}',event)">✕</button>`;
-    }
-
+  keys.forEach(charId=>{
+    const c=allChars[charId];
+    const unread=unreadData[charId];
+    const color=`var(${c.color||'--ai1'})`;
     const card=document.createElement('div');
-    card.className='room-card';
-    if(unread) card.style.background='rgba(196,166,97,.03)';
-
+    card.className='char-lobby-card';
+    const avatarHtml=c.avatar
+      ?`<img class="char-lobby-avatar" src="${c.avatar}" style="border-color:${color};">`
+      :`<div class="char-lobby-avatar-placeholder" style="border-color:${color};color:${color};">${c.name?.[0]||'?'}</div>`;
+    const sub=[c.nationality,c.age?`${c.age}`:'',c.archetype].filter(Boolean).join(' · ');
+    const kinksLine=c.kinks?.length?c.kinks.slice(0,2).join(', '):'';
+    const unreadBadge=unread?`<div class="char-lobby-unread">${unread.count}</div>`:'';
+    const deeBlocked=currentUser.role==='rj'&&c.deeCanAccess===false?`<div class="char-lobby-dee-blocked">Dee ✕</div>`:'';
+    const preview=unread?`<div style="font-size:.7rem;color:var(--text2);font-style:italic;margin-top:4px;overflow:hidden;max-height:36px;">"${escHtml(unread.preview.slice(0,60))}…"</div>`:'';
     card.innerHTML=`
-      <div class="room-card-row1">
-        <div class="room-card-left">
-          <div class="room-mood-icon">${icon}</div>
-          <div>
-            <div class="room-name">${escHtml(room.name||'Unnamed')}</div>
-            <div class="room-meta" style="margin-top:4px;">
-              <span class="room-type-badge">${typeLabel}</span>
-              <span class="room-temp-dots">${tempDots}</span>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-          ${unreadBadge}
-          <span class="room-enter">Enter →</span>
-          <div class="room-actions">${editBtns}</div>
-        </div>
-      </div>
-      <div class="room-cast-row">${castHtml}</div>
-      <div style="margin-top:6px;">
-        <button onclick="showCastModal('${roomId}',event)" style="background:transparent;border:none;color:var(--accent);font-size:.7rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;letter-spacing:.06em;padding:0;font-family:'Jost',sans-serif;">View Cast</button>
-      </div>
-      ${openingHtml}`;
-
-    card.onclick=(e)=>{
-      if(e.target.closest('.room-actions')) return;
-      enterRoom(roomId);
-    };
+      ${unreadBadge}${deeBlocked}
+      ${avatarHtml}
+      <div class="char-lobby-name" style="color:${color}">${escHtml(c.name||'')}</div>
+      <div class="char-lobby-sub">${escHtml(sub)}</div>
+      ${kinksLine?`<div class="char-lobby-kinks">${escHtml(kinksLine)}</div>`:''}
+      <button class="char-lobby-profile-btn" onclick="showCharProfile('${charId}',event)">View Profile</button>
+      ${preview}`;
+    card.onclick=(e)=>{if(!e.target.classList.contains('char-lobby-profile-btn'))openSettingPicker(charId);};
     grid.appendChild(card);
   });
 }
 
-function showCastModal(roomId,e){
+// ── PROFILE MODAL ──
+function showCharProfile(charId,e){
   if(e) e.stopPropagation();
-  const room=allRooms[roomId];
-  if(!room) return;
-  const chars=room.characters||[];
-  document.getElementById('cast-modal-title').textContent=room.name||'The Cast';
+  const c=allChars[charId];if(!c) return;
+  const color=`var(${c.color||'--ai1'})`;
+  const sub=[c.nationality,c.age?`${c.age} years old`:'',c.gender].filter(Boolean).join(' · ');
+  const commTags=(c.commStyle||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
+  const interestTags=(c.interests||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
+  const kinkTags=(c.kinks||[]).map(s=>`<span class="char-tag kink">${escHtml(s)}</span>`).join('');
+  document.getElementById('cast-modal-title').textContent=c.name||'Profile';
   const body=document.getElementById('cast-modal-body');
-  body.innerHTML='';
-  chars.forEach((c,i)=>{
-    const color=`var(${AI_COLORS[i%AI_COLORS.length]})`;
-    const sub=[c.nationality,c.age?`${c.age} years old`:'',c.gender].filter(Boolean).join(' · ');
-    const commTags=(c.commStyle||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
-    const interestTags=(c.interests||[]).map(s=>`<span class="char-tag">${escHtml(s)}</span>`).join('');
-    const kinkTags=(c.kinks||[]).map(s=>`<span class="char-tag kink">${escHtml(s)}</span>`).join('');
-    const div=document.createElement('div');
-    div.className='char-profile';
-    div.style.borderColor=`${color.replace('var(','').replace(')','')}`.includes('--')?`var(${AI_COLORS[i%AI_COLORS.length]})`.replace('var(','rgba(').replace(')',',.3)'):'rgba(196,166,97,.2)';
-    div.innerHTML=`
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
-        ${c.avatar
-          ?`<img src="${c.avatar}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid ${color};flex-shrink:0;">`
-          :`<div style="width:72px;height:72px;border-radius:50%;background:var(--surface2);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:${color};flex-shrink:0;">${c.name[0]}</div>`}
-        <div>
-          <div class="char-profile-name" style="color:${color}">${escHtml(c.name)}</div>
-          <div class="char-profile-sub">${escHtml(sub)}</div>
-        </div>
+  body.innerHTML=`
+    <div class="char-profile">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        ${c.avatar?`<img src="${c.avatar}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid ${color};">`:`<div style="width:80px;height:80px;border-radius:50%;background:var(--surface2);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:2rem;color:${color};">${c.name?.[0]||'?'}</div>`}
+        <div><div class="char-profile-name" style="color:${color}">${escHtml(c.name||'')}</div><div class="char-profile-sub">${escHtml(sub)}</div></div>
       </div>
       ${c.backstory?`<div class="char-profile-section"><div class="char-profile-label">Backstory</div><div class="char-profile-text">${escHtml(c.backstory)}</div></div>`:''}
-      ${c.howMet?`<div class="char-profile-section"><div class="char-profile-label">How they met</div><div class="char-profile-text">${escHtml(c.howMet)}</div></div>`:''}
+      ${c.howMet?`<div class="char-profile-section"><div class="char-profile-label">How we met</div><div class="char-profile-text">${escHtml(c.howMet)}</div></div>`:''}
       ${c.quirks?`<div class="char-profile-section"><div class="char-profile-label">Quirks</div><div class="char-profile-text">${escHtml(c.quirks)}</div></div>`:''}
       ${c.flaw&&c.flaw!=='None'?`<div class="char-profile-section"><div class="char-profile-label">Flaw</div><div class="char-profile-text">${escHtml(c.flaw)}</div></div>`:''}
       ${commTags?`<div class="char-profile-section"><div class="char-profile-label">Communication</div><div class="char-profile-row">${commTags}</div></div>`:''}
       ${interestTags?`<div class="char-profile-section"><div class="char-profile-label">Interests</div><div class="char-profile-row">${interestTags}</div></div>`:''}
-      ${kinkTags?`<div class="char-profile-section"><div class="char-profile-label">Kinks & Expectations</div><div class="char-profile-row">${kinkTags}</div></div>`:''}`;
-    body.appendChild(div);
-  });
+      ${kinkTags?`<div class="char-profile-section"><div class="char-profile-label">Kinks</div><div class="char-profile-row">${kinkTags}</div></div>`:''}
+    </div>`;
   document.getElementById('cast-modal').style.display='flex';
 }
-
 function closeCastModal(e){
   if(e&&e.target!==document.getElementById('cast-modal')) return;
   document.getElementById('cast-modal').style.display='none';
 }
-
-window.showCastModal=showCastModal;
+window.showCharProfile=showCharProfile;
 window.closeCastModal=closeCastModal;
 
-// ── CREATE / EDIT ROOM ──
-function showCreateRoom(){
-  editingRoomId=null;
-  document.getElementById('create-room-title').textContent='New Room';
-  document.getElementById('room-name-input').value='';
-  document.getElementById('room-vibe-input').value='';
-  document.getElementById('room-model').value='llama-3.3-70b';
-  document.getElementById('room-type').value='in-person';
-  document.getElementById('dee-access').checked=true;
-  const savedKey=localStorage.getItem('venice_api_key')||'';
-  document.getElementById('room-api-key').value=savedKey;
+// ── SETTING PICKER ──
+const SETTINGS=[
+  {id:'online',      label:'Online',       emoji:'💬', vibe:'An online conversation. Texting from different locations.'},
+  {id:'in-person',   label:'In Person',    emoji:'🕯️', vibe:'Meeting in person. Warm, intimate, present.'},
+  {id:'late-night',  label:'Late Night',   emoji:'🌙', vibe:'Late at night. Quiet, unguarded, honest.'},
+  {id:'travel',      label:'Travelling',   emoji:'✈️', vibe:'Both travelling. That particular kind of freedom.'},
+];
+
+function openSettingPicker(charId){
+  pendingCharId=charId;
+  const c=allChars[charId];
+  document.getElementById('setting-picker-title').textContent=`Talk to ${c.name}`;
+  const opts=document.getElementById('setting-options');
+  opts.innerHTML='';
+  SETTINGS.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='background:var(--surface2);border:1px solid var(--border-gold);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .15s;';
+    btn.innerHTML=`<div style="font-size:1.6rem;margin-bottom:6px;">${s.emoji}</div><div style="font-size:.85rem;color:var(--text);font-family:\'Cormorant Garamond\',serif;font-style:italic;">${s.label}</div>`;
+    btn.onclick=()=>{
+      opts.querySelectorAll('button').forEach(b=>b.style.borderColor='var(--border-gold)');
+      btn.style.borderColor='var(--accent)';btn.style.background='var(--accent-glow)';
+      currentSetting=s;
+    };
+    opts.appendChild(btn);
+  });
+  // Auto-select first
+  opts.querySelector('button').click();
+  document.getElementById('setting-picker').style.display='flex';
+}
+
+function closeSettingPicker(e){
+  if(e&&e.target!==document.getElementById('setting-picker')) return;
+  document.getElementById('setting-picker').style.display='none';
+  pendingCharId=null;
+}
+
+async function confirmSetting(){
+  if(!pendingCharId) return;
+  document.getElementById('setting-picker').style.display='none';
+  await enterChar(pendingCharId);
+  pendingCharId=null;
+}
+window.openSettingPicker=openSettingPicker;
+window.closeSettingPicker=closeSettingPicker;
+window.confirmSetting=confirmSetting;
+
+// ── MANAGE CAST ──
+function showManageCast(){
+  document.getElementById('cast-api-key').value=localStorage.getItem('venice_api_key')||'';
+  document.getElementById('cast-model').value=selectedModel;
   document.getElementById('characters-container').innerHTML='';
   cardCounter=0;
-  addCharacter();
-  showScreen('screen-create-room');
+  // Load existing characters into form
+  Object.entries(allChars).forEach(([id,c])=>{
+    addCharacterPrefilled({...c,_id:id});
+  });
+  if(!Object.keys(allChars).length) addCharacter();
+  showScreen('screen-manage-cast');
 }
+window.showManageCast=showManageCast;
 
-function editRoom(roomId, e){
-  e.stopPropagation();
-  editingRoomId=roomId;
-  const room=allRooms[roomId];
-  document.getElementById('create-room-title').textContent='Edit Room';
-  document.getElementById('room-name-input').value=room.name||'';
-  document.getElementById('room-vibe-input').value=room.vibe||'';
-  document.getElementById('room-model').value=room.model||'llama-3.3-70b';
-  document.getElementById('room-type').value=room.roomType||'in-person';
-  document.getElementById('dee-access').checked=room.deeCanAccess!==false;
-  document.getElementById('room-api-key').value=localStorage.getItem('venice_api_key')||'';
-  document.getElementById('characters-container').innerHTML='';
-  cardCounter=0;
-  (room.characters||[]).forEach(c=>addCharacterPrefilled(c));
-  if(!(room.characters||[]).length) addCharacter();
-  showScreen('screen-create-room');
-}
-window.editRoom=editRoom;
-
-async function deleteRoom(roomId, e){
-  e.stopPropagation();
-  const room=allRooms[roomId];
-  if(!confirm(`Delete "${room.name}"? This also clears its chat history.`)) return;
-  await window._remove(window._ref(window._db,`rooms/${roomId}`));
-  delete allRooms[roomId];
-  renderLobby();
-}
-window.deleteRoom=deleteRoom;
-
-async function saveRoom(){
-  const name=document.getElementById('room-name-input').value.trim();
-  if(!name){alert('Give the room a name.');return;}
-  const vibe=document.getElementById('room-vibe-input').value.trim();
-  const key=document.getElementById('room-api-key').value.trim();
+async function saveCast(){
+  const key=document.getElementById('cast-api-key').value.trim();
   if(!key){alert('Enter your Venice API key.');return;}
+  const model=document.getElementById('cast-model').value;
+  localStorage.setItem('venice_api_key',key);
+  apiKey=key;
+  selectedModel=model;
+  await window._set(window._ref(window._db,'config/apiKey'),key);
+
   const cards=document.querySelectorAll('.char-card');
   if(!cards.length){alert('Add at least one character.');return;}
 
-  localStorage.setItem('venice_api_key',key);
-  apiKey=key;
-  await window._set(window._ref(window._db,'config/apiKey'),key);
+  // Clear existing characters and resave
+  await window._remove(window._ref(window._db,'characters')).catch(()=>{});
 
-  const model=document.getElementById('room-model').value;
-  const roomType=document.getElementById('room-type').value;
-  const deeCanAccess=document.getElementById('dee-access').checked;
-  
-  const chars=Array.from(cards).map((card,i)=>({
-    name:card.querySelector('.char-name-input').value.trim()||`Character ${i+1}`,
-    gender:card.querySelector('.char-gender').value,
-    age:parseInt(card.querySelector('.char-age').value)||null,
-    nationality:card.querySelector('.char-nationality').value.trim(),
-    archetype:ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)].label,
-    commStyle:Array.from(card.querySelectorAll('.char-comm-style:checked')).map(c=>c.value),
-    interests:Array.from(card.querySelectorAll('.char-interest:checked')).map(c=>c.value),
-    kinks:Array.from(card.querySelectorAll('.char-kink:checked')).map(c=>c.value),
-    flaw:card.querySelector('.char-flaw').value,
-    backstory:card.querySelector('.char-backstory').value.trim(),
-    howMet:card.querySelector('.char-howmet').value.trim(),
-    quirks:card.querySelector('.char-quirks').value.trim(),
-    avatar:card.querySelector('.char-avatar-data').value.trim()||null,
-    coupleWith:card.querySelector('.char-couple').value||null,
-    color:AI_COLORS[i%AI_COLORS.length],
-  }));
-
-  const roomId=editingRoomId||(name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now());
-  const roomData={name,vibe,model,characters:chars,apiKey:key,roomType,deeCanAccess,createdAt:Date.now()};
-  await window._set(window._ref(window._db,`rooms/${roomId}/meta`),roomData);
-  allRooms[roomId]=roomData;
-  editingRoomId=null;
-  showLobby();
-}
-window.saveRoom=saveRoom;
-
-// ── ENTER ROOM ──
-async function enterRoom(roomId){
-  stopLobbyListeners();
-  const room=allRooms[roomId];
-  // Safety check - Dee blocked from entering if not allowed
-  if(currentUser.role==='dee' && room.deeCanAccess===false){
-    alert('You do not have access to this room.');
-    return;
+  for(const card of Array.from(cards)){
+    const name=card.querySelector('.char-name-input').value.trim();
+    if(!name) continue;
+    const charId=name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+    const charData={
+      name,
+      gender:card.querySelector('.char-gender').value,
+      age:parseInt(card.querySelector('.char-age').value)||0,
+      nationality:card.querySelector('.char-nationality').value.trim(),
+      archetype:ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)].label,
+      commStyle:Array.from(card.querySelectorAll('.char-comm-style:checked')).map(c=>c.value),
+      interests:Array.from(card.querySelectorAll('.char-interest:checked')).map(c=>c.value),
+      kinks:Array.from(card.querySelectorAll('.char-kink:checked')).map(c=>c.value),
+      flaw:card.querySelector('.char-flaw').value,
+      backstory:card.querySelector('.char-backstory').value.trim(),
+      howMet:card.querySelector('.char-howmet').value.trim(),
+      quirks:card.querySelector('.char-quirks').value.trim(),
+      desc:card.querySelector('.char-desc').value.trim(),
+      avatar:card.querySelector('.char-avatar-data').value.trim()||'',
+      coupleWith:card.querySelector('.char-couple').value||'',
+      color:AI_COLORS[Array.from(cards).indexOf(card)%AI_COLORS.length],
+      deeCanAccess:true,
+    };
+    await window._set(window._ref(window._db,`characters/${charId}`),charData);
   }
-  if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
-  currentRoomId=roomId;
-  currentRoomData=room;
-  characters=room.characters||[];
-  selectedModel=room.model||'llama-3.3-70b';
+  await showLobby();
+}
+window.saveCast=saveCast;
 
-  // Load API key — RJ from localStorage, Dee from Firebase (config node or room meta)
+// Override showScreen manage cast button
+document.querySelector('[onclick="showScreen(\'screen-manage-cast\')"]').onclick=showManageCast;
+
+// ── ENTER CONVERSATION ──
+async function enterChar(charId){
+  stopLobbyListeners();
+  const char=allChars[charId];
+  if(!char){alert('Character not found.');return;}
+  if(currentUser.role==='dee'&&char.deeCanAccess===false){alert('Not available.');return;}
+  if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
+
+  currentCharId=charId;
+  currentCharData=char;
+  characters=[char]; // single character per conversation
+  selectedModel=localStorage.getItem('selected_model')||'llama-3.3-70b';
+
+  // Load API key
   if(currentUser.role==='rj'){
     apiKey=localStorage.getItem('venice_api_key')||'';
   } else {
-    // Try config/apiKey first, fall back to room meta
     const snap=await window._get(window._ref(window._db,'config/apiKey'));
-    if(snap.exists()&&snap.val()){
-      apiKey=snap.val();
-    } else {
-      // Fallback: read from room meta directly
-      const roomSnap=await window._get(window._ref(window._db,`rooms/${roomId}/meta`));
-      apiKey=roomSnap.exists()?roomSnap.val().apiKey||'':'';
-    }
+    apiKey=snap.exists()?snap.val():'';
   }
 
-  // Chat header
-  document.getElementById('chat-room-name').textContent=room.name||'Room';
+  // Chat header — show character name and avatar
+  const color=`var(${char.color||'--ai1'})`;
+  const avatarHtml=char.avatar
+    ?`<img src="${char.avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid ${color};margin-right:8px;">`
+    :`<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid ${color};display:flex;align-items:center;justify-content:center;font-size:.75rem;color:${color};flex-shrink:0;margin-right:8px;">${char.name[0]}</div>`;
+  document.getElementById('chat-room-name').innerHTML=`${avatarHtml}<span>${escHtml(char.name)}</span>`;
+
   const badge=document.getElementById('who-badge');
   badge.textContent=currentUser.display;
   badge.style.borderColor=`var(${currentUser.color})`;
   badge.style.color=`var(${currentUser.color})`;
 
-  // Participants — show only AI characters, not RJ and Dee
+  // Participants — show setting badge
   const pEl=document.getElementById('participants-display');
   pEl.innerHTML='';
-  characters.forEach(c=>{
-    const b=document.createElement('span');
-    b.className='pbadge';
-    b.style.borderColor=`var(${c.color})`;
-    b.style.color=`var(${c.color})`;
-    b.textContent=c.name;
-    pEl.appendChild(b);
-  });
+  if(currentSetting){
+    const s=document.createElement('span');
+    s.className='pbadge';s.style.borderColor='var(--border-gold)';s.style.color='var(--accent)';
+    s.textContent=`${currentSetting.emoji||''} ${currentSetting.label}`;
+    pEl.appendChild(s);
+  }
 
   // AI controls
   renderAIControls();
 
-  // Load director panel for RJ
+  // Director panel for RJ
   if(currentUser.role==='rj'){
     briefings={};
     const slider=document.getElementById('temp-slider');
@@ -891,35 +790,31 @@ async function enterRoom(roomId){
     populateBriefingTargets();
     renderBriefings();
   } else {
-    // Dee: completely hide all RJ controls
     const rjControls=document.getElementById('rj-controls');
-    if(rjControls) rjControls.style.display='none !important';
-    document.getElementById('director-panel').style.display='none !important';
-    // Hide temp slider from Dee in header
-    const tempControl=document.querySelector('.temp-control');
-    if(tempControl) tempControl.style.display='none !important';
+    if(rjControls) rjControls.style.display='none';
+    const panel=document.getElementById('director-panel');
+    if(panel) panel.style.display='none';
   }
 
-  // Show clear history button only for RJ
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
-
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
-  // Mark room as read — wrapped in try-catch so Firebase permission issues don't block entry
-  try{ await markRoomRead(roomId); }catch(e){ console.warn('markRoomRead failed:',e.message); }
-  subscribeMessages(roomId);
+  try{await markRoomRead(charId);}catch(e){}
+  subscribeMessages(charId);
 
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('chat-screen').style.display='flex';
   document.getElementById('chat-screen').classList.add('active');
-  addDivider(`${room.name} · Messages sync in real time`);
+  addDivider(`${char.name} · ${currentSetting?.label||'Conversation'}`);
 }
-window.enterRoom=enterRoom;
+window.enterChar=enterChar;
+// Keep enterRoom as alias for any legacy references
+window.enterRoom=enterChar;
 
 async function clearRoomHistory(){
-  if(!confirm(`Clear all chat history in "${currentRoomData?.name}"? Cannot be undone.`)) return;
-  await window._remove(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  if(!confirm(`Clear all chat history with ${currentCharData?.name}? Cannot be undone.`)) return;
+  await window._remove(window._ref(window._db,`conversations/${currentCharId}/messages`));
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
@@ -1074,7 +969,7 @@ async function suggestSpicyScene(){
   suggestionDiv.textContent='Generating spicy moment...';
   
   // Get last 10 messages for context
-  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  const snap=await window._get(window._ref(window._db,`conversations/${currentCharId}/messages`));
   let recentChat='';
   if(snap.exists()){
     const msgs=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-10);
@@ -1130,7 +1025,7 @@ Keep it tasteful but definitely spicy and flirty. No asterisks, no quotes.`;
 async function acceptSceneSuggestion(){
   if(!currentSuggestion){alert('No suggestion to accept.');return;}
   // Add as narrative action to chat
-  await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{
+  await window._push(window._ref(window._db,`conversations/${currentCharId}/messages`),{
     sender:'SCENE',
     text:currentSuggestion,
     type:'scene',
@@ -1148,7 +1043,7 @@ window.acceptSceneSuggestion=acceptSceneSuggestion;
 
 async function generateAutoScene(){
   if(!apiKey||isLoading) return;
-  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  const snap=await window._get(window._ref(window._db,`conversations/${currentCharId}/messages`));
   if(!snap.exists()) return;
   
   const msgs=Object.values(snap.val()).sort((a,b)=>a.ts-b.ts).slice(-8);
@@ -1174,7 +1069,7 @@ Output only the scene description, no asterisks or quotes. Make it feel natural 
       const data=await res.json();
       const scene=data.choices?.[0]?.message?.content?.trim();
       if(scene){
-        await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{sender:'SCENE',text:scene,type:'scene',ts:Date.now()});
+        await window._push(window._ref(window._db,`conversations/${currentCharId}/messages`),{sender:'SCENE',text:scene,type:'scene',ts:Date.now()});
       }
     }
   } catch(e){
@@ -1185,8 +1080,8 @@ window.generateAutoScene=generateAutoScene;
 
 // ── MEMORY COMPRESSION ──
 async function compressMemory(){
-  if(!apiKey||!currentRoomId||!currentRoomData) return;
-  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  if(!apiKey||!currentCharId||!currentCharData) return;
+  const snap=await window._get(window._ref(window._db,`conversations/${currentCharId}/messages`));
   if(!snap.exists()) return;
 
   const msgs=Object.values(snap.val())
@@ -1225,7 +1120,7 @@ Write in first person as ${char.name}. Be specific. No fluff.`;
         const data=await res.json();
         const memory=data.choices?.[0]?.message?.content?.trim();
         if(memory){
-          await window._set(window._ref(window._db,`rooms/${currentRoomId}/memory/${char.name}`),memory);
+          await window._set(window._ref(window._db,`conversations/${currentCharId}/memory/${char.name}`),memory);
         }
       }
     }catch(e){
@@ -1237,9 +1132,9 @@ window.compressMemory=compressMemory;
 
 async function refreshMemoryPanel(){
   const panel=document.getElementById('memory-panel');
-  if(!panel||!currentRoomId) return;
+  if(!panel||!currentCharId) return;
   panel.innerHTML='<div style="font-size:.78rem;color:var(--muted);">Loading...</div>';
-  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/memory`));
+  const snap=await window._get(window._ref(window._db,`conversations/${currentCharId}/memory`));
   if(!snap.exists()||!snap.val()){
     panel.innerHTML='<div style="font-size:.78rem;color:var(--muted);font-style:italic;">No memories yet. Builds after 20 messages.</div>';
     return;
@@ -1258,8 +1153,8 @@ async function refreshMemoryPanel(){
 window.refreshMemoryPanel=refreshMemoryPanel;
 
 // ── MESSAGES ──
-function subscribeMessages(roomId){
-  const msgsRef=window._ref(window._db,`rooms/${roomId}/messages`);
+function subscribeMessages(charId){
+  const msgsRef=window._ref(window._db,`conversations/${charId}/messages`);
   let initialLoad=true;
   msgUnsubscribe=window._onValue(msgsRef,snap=>{
     if(!snap.exists()){initialLoad=false;return;}
@@ -1327,7 +1222,7 @@ function renderMessage(msg){
 }
 
 async function pushMessage(sender,text,colorVar){
-  await window._push(window._ref(window._db,`rooms/${currentRoomId}/messages`),{sender,text,colorVar:colorVar||null,ts:Date.now()});
+  await window._push(window._ref(window._db,`conversations/${currentCharId}/messages`),{sender,text,colorVar:colorVar||null,ts:Date.now()});
 }
 
 // ── SEND ──
@@ -1380,7 +1275,7 @@ async function getAIResponse(charIdx){
   isLoading=true;setAIButtonsDisabled(true);
   const typingEl=addLocalTyping(char);
 
-  const snap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/messages`));
+  const snap=await window._get(window._ref(window._db,`conversations/${currentCharId}/messages`));
   let historyLines=[];
   if(snap.exists()){
     historyLines=Object.values(snap.val()).filter(m=>m.type!=='scene').sort((a,b)=>a.ts-b.ts).slice(-25).map(m=>{
@@ -1391,10 +1286,10 @@ async function getAIResponse(charIdx){
   }
 
   // Load long-term memory for this character
-  const memSnap=await window._get(window._ref(window._db,`rooms/${currentRoomId}/memory/${char.name}`));
+  const memSnap=await window._get(window._ref(window._db,`conversations/${currentCharId}/memory/${char.name}`));
   const charMemory=memSnap.exists()?memSnap.val():'';
 
-  const room=currentRoomData||{};
+  const room=currentCharData||{};
   const isOnline=room.roomType==='online';
   const vibeContext=room.vibe?`Setting: ${room.vibe}\n`:'';
   const onlineContext=isOnline?'This is an ONLINE text conversation. Do NOT describe physical actions or face-to-face scene details. People are texting each other.\n':'';
@@ -1729,32 +1624,35 @@ async function manualSeed(){
   if(btn) btn.textContent='Seeding...';
   const key=localStorage.getItem('venice_api_key')||'';
   let seeded=0;
-  let errors=[];
   try{
     const rooms=buildDefaultRooms();
     for(const room of rooms){
       try{
-        const roomData={name:room.name,vibe:room.vibe,model:room.model,roomType:room.roomType,deeCanAccess:room.deeCanAccess,characters:room.characters,apiKey:key,isDefault:true,openingMsg:room.openingMsg||'',openingChar:room.openingChar||'',temperature:room.temperature||2,createdAt:Date.now()};
-        await window._set(window._ref(window._db,`rooms/${room.id}/meta`),roomData);
-        const msgSnap=await window._get(window._ref(window._db,`rooms/${room.id}/messages`));
-        if(!msgSnap.exists()&&room.openingChar&&room.openingMsg){
-          const char=room.characters.find(c=>c.name===room.openingChar);
-          await window._push(window._ref(window._db,`rooms/${room.id}/messages`),{sender:room.openingChar,text:room.openingMsg,colorVar:char?char.color:'--ai1',ts:Date.now()});
+        // Seed each character individually into characters/ path
+        const chars=room.characters||[];
+        for(const char of chars){
+          const charId=char.name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+          const charData={...char,deeCanAccess:true};
+          // Remove null/undefined
+          Object.keys(charData).forEach(k=>{if(charData[k]===null||charData[k]===undefined)charData[k]='';});
+          await window._set(window._ref(window._db,`characters/${charId}`),charData);
+          // Add opening message if none exists
+          const msgSnap=await window._get(window._ref(window._db,`conversations/${charId}/messages`));
+          if(!msgSnap.exists()&&room.openingChar===char.name&&room.openingMsg){
+            await window._push(window._ref(window._db,`conversations/${charId}/messages`),{
+              sender:char.name,text:room.openingMsg,colorVar:char.color||'--ai1',ts:Date.now()
+            });
+          }
+          seeded++;
+          if(btn) btn.textContent=`Seeding ${seeded}...`;
         }
-        seeded++;
-        if(btn) btn.textContent=`Seeding ${seeded}/${rooms.length}...`;
-      }catch(e){
-        errors.push(`${room.name}: ${e.message}`);
-        console.error('Failed to seed room',room.id,e);
-      }
+      }catch(e){console.error('Seed error:',e);}
     }
-    await loadRooms();
-    renderLobby();
-    if(btn) btn.textContent='↻ Load Default Rooms';
-    if(errors.length) alert(`Seeded ${seeded} rooms. ${errors.length} failed:\n${errors.join('\n')}`);
+    await showLobby();
+    if(btn) btn.textContent='↻ Load Default Characters';
   }catch(e){
     alert('Seed failed: '+e.message);
-    if(btn) btn.textContent='↻ Load Default Rooms';
+    if(btn) btn.textContent='↻ Load Default Characters';
   }
 }
 window.manualSeed=manualSeed;</script>
