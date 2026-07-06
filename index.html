@@ -76,7 +76,7 @@ select option{background:#1e1624;}
 .char-desc{resize:none;height:50px;font-size:.8rem;}
 
 /* CHAT */
-.chat-header{padding:11px 15px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
+.chat-header{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;gap:0;}
 .chat-room-name{font-family:'Playfair Display',serif;font-style:italic;font-size:1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;}
 .scenario-display{background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 15px;font-size:.88rem;line-height:1.5;}
 .participants{display:flex;gap:4px;flex-wrap:wrap;flex:1;justify-content:center;}
@@ -218,14 +218,16 @@ select option{background:#1e1624;}
 <!-- CHAT -->
 <div id="chat-screen">
   <div class="chat-header">
-    <div class="chat-room-name" id="chat-room-name">Room</div>
-    <div class="participants" id="participants-display"></div>
-    <div class="header-right">
-      <div class="conn-dot"></div>
-      <div class="who-badge" id="who-badge"></div>
-      <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
-      <button class="btn-back" onclick="backToLobby()">← Rooms</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;">
+      <div class="chat-room-name" id="chat-room-name">Room</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <div class="conn-dot"></div>
+        <div class="who-badge" id="who-badge"></div>
+        <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
+        <button class="btn-back" onclick="backToLobby()" style="white-space:nowrap;">← Rooms</button>
+      </div>
     </div>
+    <div class="participants" id="participants-display" style="width:100%;margin-top:5px;justify-content:flex-start;"></div>
   </div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
