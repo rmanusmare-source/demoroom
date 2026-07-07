@@ -409,7 +409,7 @@ const USERS = {
   'rohan':  {password:'rohan1403',  display:'RJ',  color:'--rj',  role:'rj'},
   'shreya': {password:'shreya5212', display:'Dee', color:'--dee', role:'dee'},
 };
-const AI_COLORS=['--ai1','--ai2','--ai3','--ai4','--ai5','--ai6','--ai7','--ai8'];
+const AI_COLORS=['--ai1','--ai2','--ai3','--ai4','--ai5','--ai6','--ai7','--ai8','--ai1','--ai2','--ai3','--ai4','--ai5','--ai6','--ai7','--ai8','--ai1','--ai2','--ai3','--ai4'];
 const ARCHETYPES=[
   {label:'Mysterious Stranger', desc:'Enigmatic, seductive, speaks in riddles and dark poetry'},
   {label:'Bold Lover',          desc:'Confident, passionate, direct and unapologetically flirtatious'},
@@ -1569,7 +1569,7 @@ function addCharacter(){addCharacterPrefilled({});}
 function addCharacterPrefilled(preset){
   const container=document.getElementById('characters-container');
   const idx=container.querySelectorAll('.char-card').length;
-  if(idx>=8){alert('Maximum 8 characters.');return;}
+  if(idx>=20){alert('Maximum 20 characters.');return;}
   const colorVar=AI_COLORS[idx%AI_COLORS.length];
   const id=++cardCounter;
   const archIdx=Math.max(0,ARCHETYPES.findIndex(a=>a.label===preset.archetype));
