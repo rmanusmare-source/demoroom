@@ -872,6 +872,7 @@ async function saveCast(){
       quirks:card.querySelector('.char-quirks').value.trim(),
       desc:card.querySelector('.char-desc').value.trim(),
       avatar:card.querySelector('.char-avatar-data').value.trim()||'',
+      portraitHint:card.querySelector('.char-portrait-hint')?.value.trim()||'',
       coupleWith:card.querySelector('.char-couple').value||'',
       color:AI_COLORS[Array.from(cards).indexOf(card)%AI_COLORS.length],
       deeCanAccess:true,
@@ -1609,9 +1610,12 @@ function addCharacterPrefilled(preset){
         <div class="char-avatar-preview" style="width:64px;height:64px;border-radius:50%;border:1px solid var(--border-gold);background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
           ${preset.avatar?`<img src="${preset.avatar}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:1.2rem;color:var(--muted)">?</span>`}
         </div>
-        <div style="flex:1;">
-          <button type="button" class="btn btn-secondary" style="padding:7px 12px;font-size:.78rem;margin-top:0;width:auto;" onclick="generatePortrait(${id})">✦ Generate Portrait</button>
-          <div class="char-avatar-status" style="font-size:.7rem;color:var(--muted);margin-top:4px;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <textarea class="char-portrait-hint" placeholder="Describe what they look like… e.g. 'stubble, tired eyes, coffee shop, slouchy grey sweater'" style="height:52px;resize:none;font-size:.75rem;line-height:1.4;">${escHtml(preset.portraitHint||'')}</textarea>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:.75rem;margin-top:0;width:auto;flex-shrink:0;" onclick="generatePortrait(${id})">✦ Generate</button>
+            <div class="char-avatar-status" style="font-size:.68rem;color:var(--muted);"></div>
+          </div>
           <input type="hidden" class="char-avatar-data" value="${escHtml(preset.avatar||'')}">
         </div>
       </div>
@@ -1752,21 +1756,34 @@ async function generatePortrait(cardId){
   const card=document.querySelector(`.char-card[data-id="${cardId}"]`);
   if(!card) return;
   const key=localStorage.getItem('venice_api_key')||apiKey;
-  if(!key){alert('Save your Venice API key first (in any room setup).');return;}
+  if(!key){alert('No Venice API key found. Save the cast first.');return;}
 
   const name=card.querySelector('.char-name-input').value.trim()||'person';
   const age=card.querySelector('.char-age').value||'30';
   const gender=card.querySelector('.char-gender').value;
   const nat=card.querySelector('.char-nationality').value.trim();
-  const archetype=ARCHETYPES[parseInt(card.querySelector('.char-archetype').value)]?.label||'';
-  const interests=Array.from(card.querySelectorAll('.char-interest:checked')).map(c=>c.value).join(', ');
+  const hint=card.querySelector('.char-portrait-hint')?.value.trim()||'';
+  const archetypeIdx=parseInt(card.querySelector('.char-archetype').value);
+  const archetype=(ARCHETYPES[archetypeIdx]?.label||'').toLowerCase();
 
   const genderDesc=gender==='Female'?'woman':gender==='Male'?'man':'person';
-  const prompt=`Photorealistic portrait of ${name}, ${age} year old ${nat?nat+' ':''} ${genderDesc}. ${archetype}. ${interests?`Interested in ${interests}.`:''} Editorial fashion photography, warm candlelit ambiance, shallow depth of field, high quality, 8k, professional studio lighting. Head and shoulders shot. Attractive, natural, authentic.`;
+  const settingMap={
+    'sophisticated':'sitting at a cafe table, glancing sideways, slightly tired, well-dressed but casual',
+    'wild & free':'outdoors, wind in hair, mid-laugh, natural daylight, no makeup',
+    'dominant':'leaning against a wall, arms crossed, direct eye contact, plain background',
+    'romantic':'soft window light, looking slightly down, warm and thoughtful',
+    'playful tease':'caught mid-conversation, slight smile, animated expression',
+    'mysterious stranger':'looking away into the distance, quiet coffee shop background',
+    'bold lover':'relaxed, comfortable in their skin, direct gaze, nothing performative',
+    'submissive':'soft expression, gentle eyes, natural light from a window',
+  };
+  const baseSetting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
+  const hintLine=hint?`${hint}. `:'';
+  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Shot on iPhone, slightly grainy, imperfect lighting. Not a model. Normal face, normal body. No filters. No retouching.`;
 
   const statusEl=card.querySelector('.char-avatar-status');
   const previewEl=card.querySelector('.char-avatar-preview');
-  statusEl.textContent='Generating portrait…';
+  statusEl.textContent='Generating…';
   statusEl.style.color='var(--accent)';
 
   try{
@@ -1776,29 +1793,29 @@ async function generatePortrait(cardId){
       body:JSON.stringify({
         model:'flux-2-max',
         prompt,
-        negative_prompt:'cartoon, anime, illustration, drawing, painting, ugly, distorted, blurry, nsfw, nude, explicit',
+        negative_prompt:'model, perfect skin, airbrushed, studio lighting, professional photography, glamour, flawless, cartoon, anime, nsfw, nude, text, watermark',
         width:512,height:512,
-        steps:20,
-        cfg_scale:7,
-        safe_mode:false,
-        return_binary:false,
-        format:'webp',
+        steps:25,cfg_scale:4.5,
+        safe_mode:false,return_binary:false,format:'webp',
       })
     });
     if(!res.ok){
-      const err=await res.json().catch(()=>({}));
-      statusEl.textContent=`Error: ${err.error||res.status}`;
+      const err=await res.text();
+      statusEl.textContent=`Error ${res.status}`;
       statusEl.style.color='#c4735a';
+      console.error('Portrait error:',err);
       return;
     }
     const data=await res.json();
     const b64=data.images?.[0];
     if(!b64){statusEl.textContent='No image returned.';return;}
-    const dataUrl=`data:image/webp;base64,${b64}`;
-    card.querySelector('.char-avatar-data').value=dataUrl;
-    previewEl.innerHTML=`<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-    statusEl.textContent='Portrait generated ✓';
-    statusEl.style.color='#7a9e7a';
+    const compressed=await compressBase64Portrait(`data:image/webp;base64,${b64}`,320);
+    if(compressed){
+      card.querySelector('.char-avatar-data').value=compressed;
+      previewEl.innerHTML=`<img src="${compressed}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      statusEl.textContent='Done ✓';
+      statusEl.style.color='#7a9e7a';
+    }
   }catch(e){
     statusEl.textContent=`Error: ${e.message}`;
     statusEl.style.color='#c4735a';
