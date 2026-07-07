@@ -1701,7 +1701,7 @@ async function generatePortraitForChar(char,key){
       method:'POST',
       headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'fluently-xl',
+        model:'flux-2-max',
         prompt,
         negative_prompt:'cartoon, anime, illustration, nsfw, nude, text, watermark, ugly',
         width:512,height:512,
@@ -1775,7 +1775,7 @@ async function generatePortrait(cardId){
       method:'POST',
       headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'fluently-xl',
+        model:'flux-2-max',
         prompt,
         negative_prompt:'cartoon, anime, illustration, drawing, painting, ugly, distorted, blurry, nsfw, nude, explicit',
         width:512,height:512,
