@@ -893,11 +893,8 @@ function showManageCast(){
   document.getElementById('cast-model').value=selectedModel;
   document.getElementById('characters-container').innerHTML='';
   cardCounter=0;
-  // Load existing characters into form
-  Object.entries(allChars).forEach(([id,c])=>{
-    addCharacterPrefilled({...c,_id:id});
-  });
-  if(!Object.keys(allChars).length) addCharacter();
+  // Start with one blank character card for adding new
+  addCharacter();
   showScreen('screen-manage-cast');
 }
 function toggleOnlinePanel(){
@@ -1691,7 +1688,7 @@ function addCharacter(){addCharacterPrefilled({});}
 function addCharacterPrefilled(preset){
   const container=document.getElementById('characters-container');
   const idx=container.querySelectorAll('.char-card').length;
-  if(idx>=20){alert('Maximum 20 characters.');return;}
+  if(idx>=50){alert('Maximum 50 characters per session.');return;}
   const colorVar=AI_COLORS[idx%AI_COLORS.length];
   const id=++cardCounter;
   const archIdx=Math.max(0,ARCHETYPES.findIndex(a=>a.label===preset.archetype));
