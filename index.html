@@ -732,7 +732,8 @@ function carouselNext(){ if(carouselIndex<carouselKeys.length-1) goToChar(carous
 
 function enterSelectedChar(){
   if(!selectedCharId) return;
-  enterSelectedChar();
+  currentSetting={id:'online',label:'Online',emoji:'💬',vibe:'An online conversation. Texting from different locations.'};
+  enterChar(selectedCharId);
 }
 function viewSelectedProfile(){
   if(!selectedCharId) return;
@@ -1707,7 +1708,7 @@ async function generatePortraitForChar(char,key){
 
   const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${setting}. Shot on iPhone, slightly grainy, imperfect lighting. Not a model. Normal face, normal body. Everyday person. No filters. No retouching. Genuinely real.`;
 
-  const negPrompt='model, perfect skin, airbrushed, studio lighting, professional photography, glamour, beauty shot, symmetrical, flawless, cartoon, anime, illustration, nsfw, nude, text, watermark, 8k, hyperrealistic';
+  const negPrompt='supermodel, 10 out of 10, perfect symmetry, perfect skin, airbrushed, studio lighting, glamour, beauty shot, flawless, overly attractive, cartoon, anime, nsfw, nude, text, watermark';
 
   console.log(`Generating portrait for ${char.name}...`);
 
@@ -1786,7 +1787,7 @@ async function generatePortrait(cardId){
   };
   const baseSetting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
   const hintLine=hint?`${hint}. `:'';
-  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Natural indoor lighting, slightly imperfect, authentic expression. Not a model. Normal face, normal body. Honest and real.`;
+  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Natural indoor lighting, authentic expression. Average to moderately attractive person — not a model, not ugly. Realistic face with minor imperfections, slightly asymmetrical features, normal body. The kind of person you would actually meet at a party.`;
 
   const statusEl=card.querySelector('.char-avatar-status');
   const previewEl=card.querySelector('.char-avatar-preview');
@@ -1800,7 +1801,7 @@ async function generatePortrait(cardId){
       body:JSON.stringify({
         model:'flux-2-max',
         prompt,
-        negative_prompt:'model, perfect skin, airbrushed, studio lighting, professional photography, glamour, flawless, cartoon, anime, nsfw, nude, text, watermark',
+        negative_prompt:'supermodel, 10 out of 10, perfect symmetry, perfect skin, airbrushed, glamour, beauty shot, flawless, overly attractive, cartoon, anime, nsfw, nude, text, watermark',
         width:512,height:512,
         steps:25,cfg_scale:4.5,
         safe_mode:false,return_binary:false,format:'webp',
