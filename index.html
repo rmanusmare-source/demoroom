@@ -1809,9 +1809,6 @@ function showScreen(id){
 }
 window.showScreen=showScreen;
 
-// Override lobby button to use proper function
-document.querySelector('[onclick="showScreen(\'screen-create-room\')"]').onclick=showCreateRoom;
-
 function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 
 
