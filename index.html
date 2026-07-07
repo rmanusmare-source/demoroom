@@ -1809,13 +1809,11 @@ function onArchetypeChange(sel,id){
   if(idx===ARCHETYPES.length-1)d.focus();
 }
 
-async function generatePortraitForChar(char,key){
+async function generatePortraitForChar(char,key,retries=3){
   const genderDesc=char.gender==='Female'?'woman':char.gender==='Male'?'man':'person';
   const nat=char.nationality||'';
   const age=char.age||30;
   const archetype=(char.archetype||'').toLowerCase();
-
-  // Real people in real moments — not studio shots
   const settingMap={
     'sophisticated':'sitting at a cafe table, glancing sideways, slightly tired, well-dressed but casual',
     'wild & free':'outdoors, wind in hair, mid-laugh, natural daylight, no makeup',
@@ -1827,40 +1825,44 @@ async function generatePortraitForChar(char,key){
     'submissive':'soft expression, gentle eyes, natural light from a window',
   };
   const setting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
+  const hintLine=char.portraitHint?`${char.portraitHint}. `:'';
+  const prompt=`Candid photo of an attractive ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${setting}. Confident, well-groomed, put together. The kind of person who turns heads in a bar without trying. Warm natural lighting, genuine expression, photographic realism. Not a supermodel — real attractiveness, the kind that comes from confidence and presence.`;
 
-  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${setting}. Shot on iPhone, slightly grainy, imperfect lighting. Not a model. Normal face, normal body. Everyday person. No filters. No retouching. Genuinely real.`;
-
-  const negPrompt='supermodel, 10 out of 10, perfect symmetry, perfect skin, airbrushed, studio lighting, glamour, beauty shot, flawless, overly attractive, cartoon, anime, nsfw, nude, text, watermark';
-
-  console.log(`Generating portrait for ${char.name}...`);
-
-  try{
-    const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'flux-2-max',
-        prompt,
-        negative_prompt:negPrompt,
-        width:512,height:512,
-        steps:25,cfg_scale:4.5,
-        safe_mode:false,return_binary:false,format:'webp',
-      })
-    });
-    if(!res.ok){
-      const err=await res.text();
-      console.error(`Portrait error for ${char.name}:`,res.status,err);
-      return null;
+  for(let attempt=1;attempt<=retries;attempt++){
+    try{
+      const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'flux-2-max',
+          prompt,
+          negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark, painting, drawing',
+          width:512,height:512,
+          steps:25,cfg_scale:4.5,
+          safe_mode:false,return_binary:false,format:'webp',
+        })
+      });
+      if(res.status===429){
+        const wait=35000+(attempt*10000);
+        console.log(`Rate limited for ${char.name}. Waiting ${wait/1000}s (attempt ${attempt}/${retries})...`);
+        await new Promise(r=>setTimeout(r,wait));
+        continue;
+      }
+      if(!res.ok){
+        const err=await res.text();
+        console.error(`Portrait error for ${char.name}:`,res.status,err);
+        return null;
+      }
+      const data=await res.json();
+      const b64=data.images?.[0];
+      if(!b64){console.error('No image returned:',data);return null;}
+      return await compressBase64Portrait(`data:image/webp;base64,${b64}`,320);
+    }catch(e){
+      console.error(`Portrait exception for ${char.name}:`,e);
+      if(attempt<retries) await new Promise(r=>setTimeout(r,5000));
     }
-    const data=await res.json();
-    const b64=data.images?.[0];
-    if(!b64){console.error('No image returned:',data);return null;}
-    console.log(`Portrait generated for ${char.name}`);
-    return await compressBase64Portrait(`data:image/webp;base64,${b64}`,320);
-  }catch(e){
-    console.error(`Portrait exception for ${char.name}:`,e);
-    return null;
   }
+  return null;
 }
 
 async function compressBase64Portrait(dataUrl,size){
@@ -1909,7 +1911,7 @@ async function generatePortrait(cardId){
   };
   const baseSetting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
   const hintLine=hint?`${hint}. `:'';
-  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Natural indoor lighting, authentic expression. Average to moderately attractive person — not a model, not ugly. Realistic face with minor imperfections, slightly asymmetrical features, normal body. The kind of person you would actually meet at a party.`;
+  const prompt=`Candid photo of an attractive ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Confident, well-groomed, put together. Warm natural lighting, genuine expression, photographic realism. The kind of attractive that comes from confidence and presence, not perfection.`;
 
   const statusEl=card.querySelector('.char-avatar-status');
   const previewEl=card.querySelector('.char-avatar-preview');
@@ -1923,7 +1925,7 @@ async function generatePortrait(cardId){
       body:JSON.stringify({
         model:'flux-2-max',
         prompt,
-        negative_prompt:'supermodel, 10 out of 10, perfect symmetry, perfect skin, airbrushed, glamour, beauty shot, flawless, overly attractive, cartoon, anime, nsfw, nude, text, watermark',
+        negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark',
         width:512,height:512,
         steps:25,cfg_scale:4.5,
         safe_mode:false,return_binary:false,format:'webp',
@@ -2016,6 +2018,8 @@ async function manualSeed(){
             await window._set(window._ref(window._db,`characters/${char.id}/avatar`),portrait);
             charData.avatar=portrait;
           }
+          // 3s gap between requests to avoid rate limiting
+          await new Promise(r=>setTimeout(r,3000));
         }
         allChars[char.id]=charData;
         if(seeded%5===0){buildCarousel();}
