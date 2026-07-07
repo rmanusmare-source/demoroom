@@ -1831,11 +1831,11 @@ async function generatePortraitForChar(char,key,retries=3){
         method:'POST',
         headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
         body:JSON.stringify({
-          model:'flux-2-max',
+          model:'lustify-sdxl',
           prompt,
           negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark, painting, drawing',
           width:512,height:512,
-          steps:25,cfg_scale:4.5,
+          steps:20,cfg_scale:7,
           safe_mode:false,return_binary:false,format:'webp',
         })
       });
@@ -1920,11 +1920,11 @@ async function generatePortrait(cardId){
       method:'POST',
       headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'flux-2-max',
+        model:'lustify-sdxl',
         prompt,
         negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark',
         width:512,height:512,
-        steps:25,cfg_scale:4.5,
+        steps:20,cfg_scale:7,
         safe_mode:false,return_binary:false,format:'webp',
       })
     });
