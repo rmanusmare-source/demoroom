@@ -99,29 +99,39 @@ select option{background:var(--surface2);}
 /* Dee access pill */
 .dee-pill{font-size:.62rem;padding:2px 7px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:.08em;}
 
-/* SWIPE LOBBY */
-.swipe-container{position:relative;width:100%;max-width:380px;height:520px;margin:0 auto;}
-.swipe-card{position:absolute;inset:0;border-radius:20px;overflow:hidden;cursor:grab;user-select:none;transition:transform .15s ease,box-shadow .15s ease;border:1px solid var(--border-gold);}
-.swipe-card:active{cursor:grabbing;}
-.swipe-card-img{width:100%;height:100%;object-fit:cover;display:block;}
-.swipe-card-img-placeholder{width:100%;height:100%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:5rem;font-style:italic;color:var(--accent);}
-.swipe-card-overlay{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(to top,rgba(9,8,10,.95) 0%,rgba(9,8,10,.6) 60%,transparent 100%);}
-.swipe-card-name{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-style:italic;color:var(--text);margin-bottom:2px;}
-.swipe-card-sub{font-size:.78rem;color:var(--text2);margin-bottom:8px;}
-.swipe-card-kinks{display:flex;gap:5px;flex-wrap:wrap;}
-.swipe-kink-tag{font-size:.65rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(158,107,127,.5);color:var(--accent2);}
-.swipe-card-unread{position:absolute;top:14px;right:14px;background:var(--accent);color:var(--bg);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;}
-.swipe-actions{display:flex;justify-content:center;align-items:center;gap:20px;margin-top:16px;}
-.swipe-btn{width:54px;height:54px;border-radius:50%;border:1px solid var(--border-gold);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.3rem;transition:all .15s;}
-.swipe-btn:hover{transform:scale(1.1);}
-.swipe-btn.enter{background:linear-gradient(135deg,#8a6a30,#c4a661);border:none;width:64px;height:64px;font-size:1rem;color:var(--bg);font-family:'Jost',sans-serif;font-weight:600;letter-spacing:.06em;}
-.swipe-counter{font-size:.72rem;color:var(--muted);text-align:center;margin-top:10px;letter-spacing:.08em;}
-.swipe-label{position:absolute;top:20px;left:20px;padding:6px 14px;border-radius:8px;font-size:.85rem;font-weight:600;letter-spacing:.06em;opacity:0;transition:opacity .15s;pointer-events:none;}
-.swipe-label.like{background:rgba(122,158,122,.2);border:2px solid #7a9e7a;color:#7a9e7a;}
-.swipe-label.nope{background:rgba(196,115,90,.2);border:2px solid #c4735a;color:#c4735a;left:auto;right:20px;}
-.swipe-profile-btn{font-size:.7rem;color:var(--accent);background:transparent;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0;font-family:'Jost',sans-serif;margin-top:6px;display:block;text-align:center;width:100%;}
-.char-lobby-dee-blocked{position:absolute;top:14px;left:14px;font-size:.6rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;background:rgba(0,0,0,.5);}
-.swipe-empty{text-align:center;color:var(--muted);font-size:.9rem;padding:40px;font-style:italic;}
+/* CAROUSEL LOBBY */
+.carousel-wrapper{width:100%;max-width:640px;position:relative;}
+.carousel-track-outer{overflow:hidden;border-radius:16px;margin-bottom:12px;}
+.carousel-track{display:flex;gap:12px;transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform;padding:2px;}
+.char-card-c{flex:0 0 calc(50% - 6px);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;border:1px solid var(--border-gold);aspect-ratio:.75;transition:transform .2s,box-shadow .2s;background:var(--surface);}
+@media(min-width:480px){.char-card-c{flex:0 0 calc(33.333% - 8px);}}
+.char-card-c:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(196,166,97,.12);}
+.char-card-c.active-char{border-color:var(--accent);box-shadow:0 0 0 2px rgba(196,166,97,.3);}
+.char-card-img{width:100%;height:100%;object-fit:cover;display:block;}
+.char-card-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:3rem;font-style:italic;background:var(--surface2);}
+.char-card-overlay{position:absolute;bottom:0;left:0;right:0;padding:16px 14px 14px;background:linear-gradient(to top,rgba(9,8,10,.96) 0%,rgba(9,8,10,.5) 70%,transparent 100%);}
+.char-card-name{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;color:var(--text);line-height:1.2;}
+.char-card-sub{font-size:.63rem;color:var(--text2);margin-top:2px;line-height:1.3;}
+.char-card-kinks{display:flex;gap:3px;flex-wrap:wrap;margin-top:5px;}
+.char-kink-tag{font-size:.58rem;padding:1px 6px;border-radius:20px;border:1px solid rgba(158,107,127,.4);color:var(--accent2);}
+.char-card-unread{position:absolute;top:10px;right:10px;background:var(--accent);color:var(--bg);border-radius:20px;padding:2px 7px;font-size:.62rem;font-weight:700;}
+.char-card-blocked{position:absolute;top:10px;left:10px;font-size:.58rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;background:rgba(0,0,0,.6);}
+
+.carousel-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.carousel-btn{background:var(--surface);border:1px solid var(--border-gold);color:var(--accent);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.carousel-btn:hover{background:var(--accent-glow);}
+.carousel-btn:disabled{opacity:.3;cursor:not-allowed;}
+.carousel-dots{display:flex;gap:5px;}
+.carousel-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:background .2s,transform .2s;}
+.carousel-dot.active{background:var(--accent);transform:scale(1.3);}
+
+.char-detail-bar{background:var(--surface);border:1px solid var(--border-gold);border-radius:12px;padding:14px 16px;margin-bottom:12px;min-height:80px;transition:all .2s;}
+.char-detail-name{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-style:italic;color:var(--text);margin-bottom:2px;}
+.char-detail-sub{font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.char-detail-bio{font-size:.8rem;color:var(--text2);line-height:1.5;}
+
+.carousel-actions{display:flex;gap:10px;}
+.carousel-empty{text-align:center;color:var(--muted);font-size:.9rem;padding:40px;font-style:italic;border:1px solid var(--border-gold);border-radius:16px;}
 #characters-container{display:flex;flex-direction:column;gap:11px;margin-bottom:11px;}
 .char-card{background:var(--surface2);border:1px solid var(--border-gold);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .char-top{display:flex;align-items:center;justify-content:space-between;}
@@ -227,7 +237,7 @@ select option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- LOBBY — swipe cards -->
+<!-- LOBBY — carousel -->
 <div class="screen" id="screen-lobby">
   <div class="lobby-header">
     <div class="lobby-title">Salle Privée</div>
@@ -236,17 +246,20 @@ select option{background:var(--surface2);}
       <button class="btn-logout" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div id="swipe-wrapper" style="width:100%;max-width:640px;">
-    <div class="swipe-container" id="swipe-container">
-      <div class="swipe-empty">Loading…</div>
+  <div class="carousel-wrapper" id="carousel-wrapper">
+    <div class="carousel-nav">
+      <button class="carousel-btn" id="carousel-prev" onclick="carouselPrev()">‹</button>
+      <div class="carousel-dots" id="carousel-dots"></div>
+      <button class="carousel-btn" id="carousel-next" onclick="carouselNext()">›</button>
     </div>
-    <div id="swipe-profile-link" style="min-height:24px;"></div>
-    <div class="swipe-actions">
-      <button class="swipe-btn" onclick="swipeLeft()" title="Skip">✕</button>
-      <button class="swipe-btn enter" onclick="enterCurrentChar()">Enter</button>
-      <button class="swipe-btn" onclick="swipeRight()" title="Next">→</button>
+    <div class="carousel-track-outer">
+      <div class="carousel-track" id="carousel-track"></div>
     </div>
-    <div class="swipe-counter" id="swipe-counter"></div>
+    <div class="char-detail-bar" id="char-detail-bar"></div>
+    <div class="carousel-actions">
+      <button class="btn btn-primary" style="flex:2;" onclick="enterSelectedChar()">Enter Conversation →</button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="viewSelectedProfile()">Profile</button>
+    </div>
   </div>
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
     <button class="btn btn-primary" onclick="showManageCast()">✦ Manage Cast</button>
@@ -574,131 +587,147 @@ function startLobbyListener(){
 }
 function stopLobbyListeners(){lobbyUnsubscribers.forEach(u=>u());lobbyUnsubscribers=[];}
 
-// ── SWIPE LOBBY ──
-let swipeQueue=[];   // charIds in order
-let swipeIndex=0;    // current card index
+// ── CAROUSEL LOBBY ──
+let carouselKeys=[];
+let carouselIndex=0;
+let selectedCharId=null;
 
 function renderCharLobby(){
   let keys=Object.keys(allChars);
   if(currentUser.role==='dee') keys=keys.filter(id=>allChars[id].deeCanAccess!==false);
-  // Unread first, then alphabetical
   keys.sort((a,b)=>{
-    const ua=unreadData[a]?1:0, ub=unreadData[b]?1:0;
+    const ua=unreadData[a]?1:0,ub=unreadData[b]?1:0;
     if(ub!==ua) return ub-ua;
     return (allChars[a].name||'').localeCompare(allChars[b].name||'');
   });
-  swipeQueue=keys;
-  swipeIndex=0;
-  renderSwipeCard();
+  carouselKeys=keys;
+  carouselIndex=0;
+  selectedCharId=keys[0]||null;
+  renderCarousel();
 }
 
-function renderSwipeCard(){
-  const container=document.getElementById('swipe-container');
-  const profileLink=document.getElementById('swipe-profile-link');
-  const counter=document.getElementById('swipe-counter');
-  container.innerHTML='';
-  profileLink.innerHTML='';
+function renderCarousel(){
+  const track=document.getElementById('carousel-track');
+  const dots=document.getElementById('carousel-dots');
+  const wrapper=document.getElementById('carousel-wrapper');
 
-  if(!swipeQueue.length){
-    container.innerHTML='<div class="swipe-empty">No characters yet.</div>';
-    counter.textContent='';
+  if(!carouselKeys.length){
+    track.innerHTML='';
+    dots.innerHTML='';
+    document.getElementById('char-detail-bar').innerHTML='<div class="carousel-empty">No characters yet.</div>';
     return;
   }
-  if(swipeIndex>=swipeQueue.length) swipeIndex=0;
 
-  const charId=swipeQueue[swipeIndex];
-  const c=allChars[charId];
-  if(!c){swipeIndex++;renderSwipeCard();return;}
+  track.innerHTML='';
+  dots.innerHTML='';
 
+  carouselKeys.forEach((charId,i)=>{
+    const c=allChars[charId];
+    const color=`var(${c.color||'--ai1'})`;
+    const unread=unreadData[charId];
+    const kinkTags=(c.kinks||[]).slice(0,2).map(k=>`<span class="char-kink-tag">${escHtml(k)}</span>`).join('');
+    const sub=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(' · ');
+
+    const card=document.createElement('div');
+    card.className=`char-card-c${selectedCharId===charId?' active-char':''}`;
+    card.dataset.charId=charId;
+
+    const imgHtml=c.avatar
+      ?`<img class="char-card-img" src="${c.avatar}" draggable="false">`
+      :`<div class="char-card-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
+
+    card.innerHTML=`
+      ${imgHtml}
+      ${unread?`<div class="char-card-unread">${unread.count}</div>`:''}
+      ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-card-blocked">Dee ✕</div>':''}
+      <div class="char-card-overlay">
+        <div class="char-card-name" style="color:${color}">${escHtml(c.name||'')}</div>
+        <div class="char-card-sub">${escHtml(sub)}</div>
+        <div class="char-card-kinks">${kinkTags}</div>
+      </div>`;
+
+    card.onclick=()=>selectChar(charId);
+    track.appendChild(card);
+
+    // Dot
+    const dot=document.createElement('div');
+    dot.className=`carousel-dot${selectedCharId===charId?' active':''}`;
+    dot.onclick=()=>{carouselIndex=i;selectChar(charId);};
+    dots.appendChild(dot);
+  });
+
+  updateCarouselPosition();
+  updateDetailBar();
+  updateCarouselNav();
+}
+
+function selectChar(charId){
+  selectedCharId=charId;
+  carouselIndex=carouselKeys.indexOf(charId);
+  // Update active states
+  document.querySelectorAll('.char-card-c').forEach(c=>{
+    c.classList.toggle('active-char',c.dataset.charId===charId);
+  });
+  document.querySelectorAll('.carousel-dot').forEach((d,i)=>{
+    d.classList.toggle('active',i===carouselIndex);
+  });
+  updateCarouselPosition();
+  updateDetailBar();
+  updateCarouselNav();
+}
+
+function updateCarouselPosition(){
+  const track=document.getElementById('carousel-track');
+  if(!track) return;
+  const cards=track.querySelectorAll('.char-card-c');
+  if(!cards.length) return;
+  const cardW=cards[0].offsetWidth+12;
+  const visible=window.innerWidth>=480?3:2;
+  let offset=Math.max(0,carouselIndex-Math.floor(visible/2))*cardW;
+  const maxOffset=Math.max(0,(carouselKeys.length-visible)*cardW);
+  offset=Math.min(offset,maxOffset);
+  track.style.transform=`translateX(-${offset}px)`;
+}
+
+function updateDetailBar(){
+  const bar=document.getElementById('char-detail-bar');
+  if(!selectedCharId||!allChars[selectedCharId]){bar.innerHTML='';return;}
+  const c=allChars[selectedCharId];
   const color=`var(${c.color||'--ai1'})`;
-  const unread=unreadData[charId];
-  const sub=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(' · ');
-  const kinkTags=(c.kinks||[]).slice(0,3).map(k=>`<span class="swipe-kink-tag">${escHtml(k)}</span>`).join('');
-
-  const card=document.createElement('div');
-  card.className='swipe-card';
-  card.id='active-swipe-card';
-
-  const imgHtml=c.avatar
-    ?`<img class="swipe-card-img" src="${c.avatar}" draggable="false">`
-    :`<div class="swipe-card-img-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
-
-  card.innerHTML=`
-    ${imgHtml}
-    ${unread?`<div class="swipe-card-unread">${unread.count} new</div>`:''}
-    ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-lobby-dee-blocked">Dee ✕</div>':''}
-    <div class="swipe-label like" id="swipe-label-like">ENTER</div>
-    <div class="swipe-label nope" id="swipe-label-nope">SKIP</div>
-    <div class="swipe-card-overlay">
-      <div class="swipe-card-name">${escHtml(c.name||'')}</div>
-      <div class="swipe-card-sub">${escHtml(sub)}${c.archetype?` · ${escHtml(c.archetype)}`:''}</div>
-      <div class="swipe-card-kinks">${kinkTags}</div>
-    </div>`;
-
-  // Touch/mouse drag
-  let startX=0,startY=0,isDragging=false;
-  const onStart=(e)=>{
-    isDragging=true;
-    startX=e.touches?e.touches[0].clientX:e.clientX;
-    startY=e.touches?e.touches[0].clientY:e.clientY;
-  };
-  const onMove=(e)=>{
-    if(!isDragging) return;
-    const x=(e.touches?e.touches[0].clientX:e.clientX)-startX;
-    const y=(e.touches?e.touches[0].clientY:e.clientY)-startY;
-    const rot=x*0.08;
-    card.style.transform=`translate(${x}px,${y}px) rotate(${rot}deg)`;
-    card.style.transition='none';
-    document.getElementById('swipe-label-like').style.opacity=x>30?Math.min((x-30)/60,1):0;
-    document.getElementById('swipe-label-nope').style.opacity=x<-30?Math.min((-x-30)/60,1):0;
-  };
-  const onEnd=(e)=>{
-    if(!isDragging) return;
-    isDragging=false;
-    const x=(e.changedTouches?e.changedTouches[0].clientX:e.clientX)-startX;
-    card.style.transition='';
-    if(x>80){animateSwipe('right');}
-    else if(x<-80){animateSwipe('left');}
-    else{card.style.transform='';card.style.transition='transform .3s ease';}
-  };
-  card.addEventListener('mousedown',onStart);
-  card.addEventListener('touchstart',onStart,{passive:true});
-  window.addEventListener('mousemove',onMove);
-  window.addEventListener('touchmove',onMove,{passive:true});
-  window.addEventListener('mouseup',onEnd);
-  window.addEventListener('touchend',onEnd);
-
-  container.appendChild(card);
-  counter.textContent=`${swipeIndex+1} of ${swipeQueue.length}`;
-  profileLink.innerHTML=`<button class="swipe-profile-btn" onclick="showCharProfile('${charId}')">View Profile</button>`;
+  const sub=[c.nationality,c.age?`${c.age} years old`:'',c.archetype].filter(Boolean).join(' · ');
+  bar.innerHTML=`
+    <div class="char-detail-name" style="color:${color}">${escHtml(c.name||'')}</div>
+    <div class="char-detail-sub">${escHtml(sub)}</div>
+    <div class="char-detail-bio">${escHtml(c.backstory||c.desc||'')}</div>`;
 }
 
-function animateSwipe(dir){
-  const card=document.getElementById('active-swipe-card');
-  if(!card) return;
-  const x=dir==='right'?600:-600;
-  card.style.transition='transform .35s ease,opacity .35s ease';
-  card.style.transform=`translate(${x}px,-20px) rotate(${dir==='right'?20:-20}deg)`;
-  card.style.opacity='0';
-  setTimeout(()=>{
-    if(dir==='right') swipeIndex=(swipeIndex+1)%swipeQueue.length;
-    else swipeIndex=(swipeIndex+1)%swipeQueue.length;
-    renderSwipeCard();
-  },350);
+function updateCarouselNav(){
+  const prev=document.getElementById('carousel-prev');
+  const next=document.getElementById('carousel-next');
+  if(prev) prev.disabled=carouselIndex===0;
+  if(next) next.disabled=carouselIndex===carouselKeys.length-1;
 }
 
-function swipeLeft(){ animateSwipe('left'); }
-function swipeRight(){ animateSwipe('right'); }
-
-function enterCurrentChar(){
-  if(!swipeQueue.length) return;
-  const charId=swipeQueue[swipeIndex];
-  openSettingPicker(charId);
+function carouselPrev(){
+  if(carouselIndex>0){carouselIndex--;selectChar(carouselKeys[carouselIndex]);}
+}
+function carouselNext(){
+  if(carouselIndex<carouselKeys.length-1){carouselIndex++;selectChar(carouselKeys[carouselIndex]);}
 }
 
-window.swipeLeft=swipeLeft;
-window.swipeRight=swipeRight;
-window.enterCurrentChar=enterCurrentChar;
+function enterSelectedChar(){
+  if(!selectedCharId) return;
+  openSettingPicker(selectedCharId);
+}
+function viewSelectedProfile(){
+  if(!selectedCharId) return;
+  showCharProfile(selectedCharId);
+}
+
+window.carouselPrev=carouselPrev;
+window.carouselNext=carouselNext;
+window.enterSelectedChar=enterSelectedChar;
+window.viewSelectedProfile=viewSelectedProfile;
 
 // ── PROFILE MODAL ──
 function showCharProfile(charId,e){
@@ -1635,10 +1664,7 @@ async function generatePortraitForChar(char,key){
   const genderDesc=char.gender==='Female'?'woman':char.gender==='Male'?'man':'person';
   const nat=char.nationality||'';
   const age=char.age||30;
-  const interests=(char.interests||[]).slice(0,3).join(', ');
   const archetype=(char.archetype||'').toLowerCase();
-
-  // Realistic portrait — not supermodel, natural and human
   const styleMap={
     'sophisticated':'well-dressed, refined, natural confidence, professional editorial portrait',
     'wild & free':'relaxed, natural, windswept, candid outdoor portrait',
@@ -1650,8 +1676,7 @@ async function generatePortraitForChar(char,key){
     'submissive':'gentle, warm, soft eyes, natural expression',
   };
   const styleHint=styleMap[archetype]||'natural, candid, authentic portrait';
-
-  const prompt=`Portrait photograph of a real-looking ${age}-year-old ${nat} ${genderDesc}. ${styleHint}. Natural lighting, authentic expression, not a supermodel — real and human. Shallow depth of field, honest face, candid feel. No makeup, no glam. Real person. High quality photography.`;
+  const prompt=`Portrait photograph of a real-looking ${age}-year-old ${nat} ${genderDesc}. ${styleHint}. Natural lighting, authentic expression, not a supermodel — real and human. Shallow depth of field, honest face.`;
 
   try{
     const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
@@ -1660,19 +1685,45 @@ async function generatePortraitForChar(char,key){
       body:JSON.stringify({
         model:'fluently-xl',
         prompt,
-        negative_prompt:'supermodel, perfect, glamour, airbrushed, fake, cartoon, anime, illustration, nsfw, nude',
-        width:512,height:640,
-        steps:25,cfg_scale:6.5,
+        negative_prompt:'supermodel, glamour, airbrushed, cartoon, anime, illustration, nsfw, nude, text, watermark',
+        width:512,height:512,
+        steps:20,cfg_scale:6,
         safe_mode:false,return_binary:false,format:'webp',
       })
     });
-    if(res.ok){
-      const data=await res.json();
-      const b64=data.images?.[0];
-      if(b64) return `data:image/webp;base64,${b64}`;
+    if(!res.ok){
+      const err=await res.text();
+      console.error('Portrait API error:',res.status,err);
+      return null;
     }
-  }catch(e){console.error('Portrait gen failed:',e);}
-  return null;
+    const data=await res.json();
+    const b64=data.images?.[0];
+    if(!b64){console.error('No image in response:',data);return null;}
+
+    // Compress to 256x256 JPEG to keep Firebase storage small (~15KB vs ~200KB)
+    return await compressBase64Portrait(`data:image/webp;base64,${b64}`,256);
+  }catch(e){
+    console.error('Portrait gen failed:',e);
+    return null;
+  }
+}
+
+async function compressBase64Portrait(dataUrl,size){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=size;canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      // Center crop to square
+      const s=Math.min(img.width,img.height);
+      const sx=(img.width-s)/2,sy=(img.height-s)/2;
+      ctx.drawImage(img,sx,sy,s,s,0,0,size,size);
+      resolve(canvas.toDataURL('image/jpeg',0.75));
+    };
+    img.onerror=()=>resolve(null);
+    img.src=dataUrl;
+  });
 }
 window.generatePortraitForChar=generatePortraitForChar;
 
