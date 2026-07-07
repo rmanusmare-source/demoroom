@@ -261,6 +261,7 @@ select option{background:var(--surface2);}
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
     <button class="btn btn-primary" onclick="showManageCast()">✦ Manage Cast</button>
     <button class="btn btn-secondary" style="margin-top:8px;" onclick="manualSeed()">↻ Load Default Characters</button>
+    <button id="gen-portraits-btn" class="btn btn-secondary" style="margin-top:8px;" onclick="generateAllPortraits()">✦ Generate Portraits</button>
   </div>
 </div>
 
@@ -1832,7 +1833,14 @@ async function seedDefaultRooms(){
 async function manualSeed(){
   const btn=document.querySelector('[onclick="manualSeed()"]');
   if(btn) btn.textContent='Seeding...';
-  const key=localStorage.getItem('venice_api_key')||'';
+  let key=localStorage.getItem('venice_api_key')||'';
+  if(!key){
+    key=prompt('Enter your Venice API key to seed characters and generate portraits:');
+    if(!key){if(btn)btn.textContent='↻ Load Default Characters';return;}
+    localStorage.setItem('venice_api_key',key);
+    apiKey=key;
+    await window._set(window._ref(window._db,'config/apiKey'),key);
+  }
   let seeded=0;
   try{
     const rooms=buildDefaultRooms();
@@ -1852,24 +1860,41 @@ async function manualSeed(){
           }
           seeded++;
           if(btn) btn.textContent=`Seeding ${seeded}...`;
-          // Generate portrait if none exists
-          if(!charData.avatar&&key){
-            if(btn) btn.textContent=`Generating portrait for ${char.name}...`;
-            const portrait=await generatePortraitForChar(char,key);
-            if(portrait){
-              await window._set(window._ref(window._db,`characters/${charId}/avatar`),portrait);
-            }
-          }
         }
       }catch(e){console.error('Seed error:',e);}
     }
     await showLobby();
     if(btn) btn.textContent='↻ Load Default Characters';
+    // Now generate portraits
+    generateAllPortraits(key);
   }catch(e){
     alert('Seed failed: '+e.message);
     if(btn) btn.textContent='↻ Load Default Characters';
   }
 }
-window.manualSeed=manualSeed;</script>
+window.manualSeed=manualSeed;
+
+async function generateAllPortraits(key){
+  key=key||localStorage.getItem('venice_api_key')||'';
+  if(!key){alert('No API key found.');return;}
+  const btn=document.getElementById('gen-portraits-btn');
+  const chars=Object.entries(allChars);
+  let done=0;
+  for(const [charId,char] of chars){
+    if(char.avatar) continue; // skip if already has portrait
+    if(btn) btn.textContent=`Generating ${char.name}... (${done+1}/${chars.length})`;
+    const portrait=await generatePortraitForChar(char,key);
+    if(portrait){
+      await window._set(window._ref(window._db,`characters/${charId}/avatar`),portrait);
+      allChars[charId].avatar=portrait;
+      buildCarousel(); // refresh lobby
+    }
+    done++;
+    await new Promise(r=>setTimeout(r,500)); // small gap between requests
+  }
+  if(btn) btn.textContent='✦ Generate Portraits';
+  buildCarousel();
+}
+window.generateAllPortraits=generateAllPortraits;</script>
 </body>
 </html>
