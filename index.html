@@ -310,6 +310,15 @@ select option{background:var(--surface2);}
         <option value="deepseek-r1-671b">DeepSeek R1 671B</option>
       </select>
     </div>
+    <div class="field">
+      <label>Image Model (for portrait generation)</label>
+      <select id="cast-image-model">
+        <option value="lustify-sdxl">lustify-sdxl — Cheap · Good quality (~$0.01/image)</option>
+        <option value="lustify-v7">lustify-v7 — Cheap · Better quality (~$0.01/image)</option>
+        <option value="venice-sd35">venice-sd35 — Moderate · Venice native (~$0.02/image)</option>
+        <option value="flux-2-max">flux-2-max — Expensive · Best quality (~$0.09/image) ⚠️</option>
+      </select>
+    </div>
     <div class="field"><label>Characters</label></div>
     <div id="characters-container"></div>
     <button class="btn-ghost" onclick="addCharacter()">＋ Add Character</button>
@@ -891,9 +900,9 @@ window.confirmSetting=confirmSetting;
 function showManageCast(){
   document.getElementById('cast-api-key').value=localStorage.getItem('venice_api_key')||'';
   document.getElementById('cast-model').value=selectedModel;
+  document.getElementById('cast-image-model').value=localStorage.getItem('portrait_model')||'lustify-sdxl';
   document.getElementById('characters-container').innerHTML='';
   cardCounter=0;
-  // Start with one blank character card for adding new
   addCharacter();
   showScreen('screen-manage-cast');
 }
@@ -963,6 +972,8 @@ async function saveCast(){
   const key=document.getElementById('cast-api-key').value.trim();
   if(!key){alert('Enter your Venice API key.');return;}
   const model=document.getElementById('cast-model').value;
+  const imageModel=document.getElementById('cast-image-model').value;
+  localStorage.setItem('portrait_model',imageModel);
   localStorage.setItem('venice_api_key',key);
   apiKey=key;
   selectedModel=model;
@@ -1831,7 +1842,7 @@ async function generatePortraitForChar(char,key,retries=3){
         method:'POST',
         headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
         body:JSON.stringify({
-          model:'lustify-sdxl',
+          model:(localStorage.getItem('portrait_model')||'lustify-sdxl'),
           prompt,
           negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark, painting, drawing',
           width:512,height:512,
@@ -1920,7 +1931,7 @@ async function generatePortrait(cardId){
       method:'POST',
       headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'lustify-sdxl',
+        model:(localStorage.getItem('portrait_model')||'lustify-sdxl'),
         prompt,
         negative_prompt:'homeless, messy, tired, dishevelled, ugly, old, wrinkled, overweight, sick, cartoon, anime, illustration, nsfw, nude, text, watermark',
         width:512,height:512,
