@@ -1680,21 +1680,25 @@ async function generatePortraitForChar(char,key){
   const nat=char.nationality||'';
   const age=char.age||30;
   const archetype=(char.archetype||'').toLowerCase();
-  const styleMap={
-    'sophisticated':'well-dressed, refined, natural confidence',
-    'wild & free':'relaxed, natural, windswept, candid',
-    'dominant':'strong presence, direct gaze, quiet authority',
-    'romantic':'warm, gentle, soft expression, golden hour',
-    'playful tease':'bright eyes, hint of a smile, casual',
-    'mysterious stranger':'contemplative, moody natural light',
-    'bold lover':'confident, direct, naturally attractive',
-    'submissive':'gentle, warm, soft eyes',
-  };
-  const styleHint=styleMap[archetype]||'natural, candid, authentic';
-  const prompt=`Portrait of a ${age}-year-old ${nat} ${genderDesc}. ${styleHint}. Natural lighting, authentic expression, real person, not a supermodel.`;
 
-  console.log(`Generating portrait for ${char.name} with key: ${key.slice(0,12)}...`);
-  console.log(`Prompt: ${prompt}`);
+  // Real people in real moments — not studio shots
+  const settingMap={
+    'sophisticated':'sitting at a cafe table, glancing sideways, slightly tired, well-dressed but casual',
+    'wild & free':'outdoors, wind in hair, mid-laugh, natural daylight, no makeup',
+    'dominant':'leaning against a wall, arms crossed, direct eye contact, plain background',
+    'romantic':'soft window light, looking slightly down, warm and thoughtful',
+    'playful tease':'caught mid-conversation, slight smile, animated expression',
+    'mysterious stranger':'looking away into the distance, quiet coffee shop background',
+    'bold lover':'relaxed, comfortable in their skin, direct gaze, nothing performative',
+    'submissive':'soft expression, gentle eyes, natural light from a window',
+  };
+  const setting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
+
+  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${setting}. Shot on iPhone, slightly grainy, imperfect lighting. Not a model. Normal face, normal body. Everyday person. No filters. No retouching. Genuinely real.`;
+
+  const negPrompt='model, perfect skin, airbrushed, studio lighting, professional photography, glamour, beauty shot, symmetrical, flawless, cartoon, anime, illustration, nsfw, nude, text, watermark, 8k, hyperrealistic';
+
+  console.log(`Generating portrait for ${char.name}...`);
 
   try{
     const res=await fetch('https://api.venice.ai/api/v1/image/generate',{
@@ -1703,29 +1707,24 @@ async function generatePortraitForChar(char,key){
       body:JSON.stringify({
         model:'flux-2-max',
         prompt,
-        negative_prompt:'cartoon, anime, illustration, nsfw, nude, text, watermark, ugly',
+        negative_prompt:negPrompt,
         width:512,height:512,
-        steps:20,cfg_scale:6,
+        steps:25,cfg_scale:4.5,
         safe_mode:false,return_binary:false,format:'webp',
       })
     });
-    console.log(`Venice response status: ${res.status}`);
     if(!res.ok){
       const err=await res.text();
-      console.error(`Portrait API error for ${char.name}:`,res.status,err);
+      console.error(`Portrait error for ${char.name}:`,res.status,err);
       return null;
     }
     const data=await res.json();
-    console.log(`Response keys:`,Object.keys(data));
     const b64=data.images?.[0];
-    if(!b64){
-      console.error(`No image returned for ${char.name}. Response:`,JSON.stringify(data).slice(0,200));
-      return null;
-    }
-    console.log(`Got image for ${char.name}, b64 length: ${b64.length}`);
-    return await compressBase64Portrait(`data:image/webp;base64,${b64}`,256);
+    if(!b64){console.error('No image returned:',data);return null;}
+    console.log(`Portrait generated for ${char.name}`);
+    return await compressBase64Portrait(`data:image/webp;base64,${b64}`,320);
   }catch(e){
-    console.error(`Portrait gen exception for ${char.name}:`,e);
+    console.error(`Portrait exception for ${char.name}:`,e);
     return null;
   }
 }
@@ -1839,7 +1838,7 @@ async function manualSeed(){
   if(btn) btn.textContent='Seeding...';
   let key=localStorage.getItem('venice_api_key')||'';
   if(!key){
-    key=prompt('Enter your Venice API key to seed characters and generate portraits:');
+    key=prompt('Enter your Venice API key:');
     if(!key){if(btn)btn.textContent='↻ Load Default Characters';return;}
     localStorage.setItem('venice_api_key',key);
     apiKey=key;
@@ -1853,7 +1852,10 @@ async function manualSeed(){
         const chars=room.characters||[];
         for(const char of chars){
           const charId=char.name.toLowerCase().replace(/[^a-z0-9]/g,'_');
-          const charData={...char,deeCanAccess:true};
+          // Check if character already exists with avatar
+          const existing=await window._get(window._ref(window._db,`characters/${charId}`));
+          const existingAvatar=existing.exists()?existing.val().avatar:'';
+          const charData={...char,deeCanAccess:true,avatar:existingAvatar||''};
           Object.keys(charData).forEach(k=>{if(charData[k]===null||charData[k]===undefined)charData[k]='';});
           await window._set(window._ref(window._db,`characters/${charId}`),charData);
           const msgSnap=await window._get(window._ref(window._db,`conversations/${charId}/messages`));
@@ -1863,14 +1865,21 @@ async function manualSeed(){
             });
           }
           seeded++;
-          if(btn) btn.textContent=`Seeding ${seeded}...`;
+          // Auto-generate portrait if none exists
+          if(!existingAvatar){
+            if(btn) btn.textContent=`Portrait: ${char.name} (${seeded}/${rooms.reduce((a,r)=>a+r.characters.length,0)})`;
+            const portrait=await generatePortraitForChar(char,key);
+            if(portrait){
+              await window._set(window._ref(window._db,`characters/${charId}/avatar`),portrait);
+              charData.avatar=portrait;
+            }
+          }
+          allChars[charId]=charData;
         }
       }catch(e){console.error('Seed error:',e);}
     }
-    await showLobby();
+    await loadChars();
     if(btn) btn.textContent='↻ Load Default Characters';
-    // Now generate portraits
-    generateAllPortraits(key);
   }catch(e){
     alert('Seed failed: '+e.message);
     if(btn) btn.textContent='↻ Load Default Characters';
