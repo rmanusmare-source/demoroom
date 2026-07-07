@@ -732,7 +732,7 @@ function carouselNext(){ if(carouselIndex<carouselKeys.length-1) goToChar(carous
 
 function enterSelectedChar(){
   if(!selectedCharId) return;
-  openSettingPicker(selectedCharId);
+  enterSelectedChar();
 }
 function viewSelectedProfile(){
   if(!selectedCharId) return;
@@ -896,12 +896,19 @@ async function enterChar(charId){
   characters=[char]; // single character per conversation
   selectedModel=localStorage.getItem('selected_model')||'llama-3.3-70b';
 
-  // Load API key
-  if(currentUser.role==='rj'){
-    apiKey=localStorage.getItem('venice_api_key')||'';
-  } else {
+  // Load API key — try localStorage first, then Firebase
+  apiKey=localStorage.getItem('venice_api_key')||'';
+  if(!apiKey){
     const snap=await window._get(window._ref(window._db,'config/apiKey'));
     apiKey=snap.exists()?snap.val():'';
+    if(apiKey) localStorage.setItem('venice_api_key',apiKey);
+  }
+  if(!apiKey){
+    const entered=prompt('Enter your Venice API key to continue:');
+    if(!entered) return;
+    apiKey=entered;
+    localStorage.setItem('venice_api_key',entered);
+    await window._set(window._ref(window._db,'config/apiKey'),entered);
   }
 
   // Chat header — show character name and avatar
@@ -1779,7 +1786,7 @@ async function generatePortrait(cardId){
   };
   const baseSetting=settingMap[archetype]||'casual everyday moment, natural light, relaxed expression';
   const hintLine=hint?`${hint}. `:'';
-  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Shot on iPhone, slightly grainy, imperfect lighting. Not a model. Normal face, normal body. No filters. No retouching.`;
+  const prompt=`Candid photo of a real ${age}-year-old ${nat} ${genderDesc}. ${hintLine}${baseSetting}. Natural indoor lighting, slightly imperfect, authentic expression. Not a model. Normal face, normal body. Honest and real.`;
 
   const statusEl=card.querySelector('.char-avatar-status');
   const previewEl=card.querySelector('.char-avatar-preview');
