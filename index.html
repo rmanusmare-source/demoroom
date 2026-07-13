@@ -1027,13 +1027,17 @@ async function enterChar(charId){
   characters=[char]; // single character per conversation
   selectedModel=localStorage.getItem('selected_model')||'llama-3.3-70b';
 
-  // Load API key — try localStorage first, then Firebase
-  apiKey=localStorage.getItem('venice_api_key')||'';
-  if(!apiKey){
+  // Load API key — always check Firebase to catch updates across devices
+  try{
     const snap=await window._get(window._ref(window._db,'config/apiKey'));
-    apiKey=snap.exists()?snap.val():'';
-    if(apiKey) localStorage.setItem('venice_api_key',apiKey);
-  }
+    if(snap.exists()&&snap.val()){
+      apiKey=snap.val();
+      localStorage.setItem('venice_api_key',apiKey);
+    }
+  }catch(e){ console.warn('Firebase key load failed:',e.message); }
+  // Fallback to localStorage if Firebase failed
+  if(!apiKey) apiKey=localStorage.getItem('venice_api_key')||'';
+  console.log('API key loaded, length:',apiKey?.length,'starts with:',apiKey?.slice(0,8));
   if(!apiKey){
     const entered=prompt('Enter your Venice API key to continue:');
     if(!entered) return;
@@ -1619,6 +1623,7 @@ IMPORTANT: Do NOT assume you know anything about the people you are talking to b
 
 Adjust intensity to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. No disclaimers, no name prefix, just the message.`;
 
+  console.log('Venice chat call — key length:',apiKey?.length,'starts:',apiKey?.slice(0,10));
   try{
     const res=await fetch('https://api.venice.ai/api/v1/chat/completions',{
       method:'POST',
