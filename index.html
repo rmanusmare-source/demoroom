@@ -99,36 +99,24 @@ select option{background:var(--surface2);}
 /* Dee access pill */
 .dee-pill{font-size:.62rem;padding:2px 7px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:.08em;}
 
-/* CAROUSEL LOBBY */
-.carousel-wrapper{width:100%;max-width:480px;margin:0 auto;position:relative;}
-.carousel-track-outer{overflow:hidden;border-radius:16px;margin-bottom:12px;touch-action:pan-y;}
-.carousel-track{display:flex;transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform;}
-.char-card-c{flex:0 0 100%;border-radius:16px;overflow:hidden;position:relative;border:1px solid var(--border-gold);aspect-ratio:.72;background:var(--surface);cursor:pointer;}
-.char-card-c.active-char{border-color:var(--accent);box-shadow:0 0 0 2px rgba(196,166,97,.3);}
-.char-card-img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
-.char-card-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:5rem;font-style:italic;background:var(--surface2);}
-.char-card-overlay{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(to top,rgba(9,8,10,.97) 0%,rgba(9,8,10,.5) 65%,transparent 100%);}
-.char-card-name{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-style:italic;color:var(--text);line-height:1.2;margin-bottom:3px;}
-.char-card-sub{font-size:.73rem;color:var(--text2);margin-bottom:8px;}
-.char-card-kinks{display:flex;gap:4px;flex-wrap:wrap;}
-.char-kink-tag{font-size:.62rem;padding:2px 8px;border-radius:20px;border:1px solid rgba(158,107,127,.4);color:var(--accent2);}
-.char-card-unread{position:absolute;top:14px;right:14px;background:var(--accent);color:var(--bg);border-radius:20px;padding:3px 10px;font-size:.65rem;font-weight:700;}
-.char-card-blocked{position:absolute;top:14px;left:14px;font-size:.6rem;padding:2px 7px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;background:rgba(0,0,0,.6);}
-
-.carousel-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.carousel-btn{background:var(--surface);border:1px solid var(--border-gold);color:var(--accent);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.carousel-btn:hover{background:var(--accent-glow);}
-.carousel-btn:disabled{opacity:.25;cursor:not-allowed;}
-.carousel-dots{display:flex;gap:6px;}
-.carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .2s,transform .2s;cursor:pointer;}
-.carousel-dot.active{background:var(--accent);transform:scale(1.4);}
-
-.char-detail-bar{background:var(--surface);border:1px solid var(--border-gold);border-radius:12px;padding:14px 16px;margin-bottom:12px;min-height:64px;}
-.char-detail-name{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-style:italic;color:var(--text);margin-bottom:2px;}
-.char-detail-sub{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
-.char-detail-bio{font-size:.8rem;color:var(--text2);line-height:1.5;}
-.carousel-actions{display:flex;gap:10px;}
-.carousel-empty{text-align:center;color:var(--muted);font-size:.9rem;padding:40px;font-style:italic;border:1px solid var(--border-gold);border-radius:16px;}
+/* CHARACTER GRID */
+.chars-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:640px;}
+@media(min-width:500px){.chars-grid{grid-template-columns:repeat(3,1fr);}}
+.char-grid-card{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--border-gold);aspect-ratio:.72;background:var(--surface);transition:transform .2s,box-shadow .2s;}
+.char-grid-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,166,97,.12);}
+.char-grid-card.has-unread{border-color:var(--accent);box-shadow:0 0 0 2px rgba(196,166,97,.25);}
+.char-grid-img{width:100%;height:100%;object-fit:cover;display:block;}
+.char-grid-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-style:italic;background:var(--surface2);}
+.char-grid-overlay{position:absolute;bottom:0;left:0;right:0;padding:16px 12px 12px;background:linear-gradient(to top,rgba(9,8,10,.97) 0%,rgba(9,8,10,.4) 70%,transparent 100%);}
+.char-grid-name{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:var(--text);line-height:1.2;}
+.char-grid-sub{font-size:.62rem;color:var(--text2);margin-top:1px;}
+.char-grid-kinks{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
+.char-grid-kink{font-size:.55rem;padding:1px 5px;border-radius:20px;border:1px solid rgba(158,107,127,.4);color:var(--accent2);}
+.char-grid-unread{position:absolute;top:8px;right:8px;background:var(--accent);color:var(--bg);border-radius:20px;padding:2px 7px;font-size:.62rem;font-weight:700;min-width:20px;text-align:center;}
+.char-grid-offline{position:absolute;top:8px;left:8px;width:8px;height:8px;border-radius:50%;background:var(--border);border:1px solid var(--surface);}
+.char-grid-online{position:absolute;top:8px;left:8px;width:8px;height:8px;border-radius:50%;background:#7a9e7a;border:1px solid var(--surface);}
+.char-grid-blocked{position:absolute;top:8px;left:8px;font-size:.58rem;padding:2px 6px;border-radius:20px;border:1px solid rgba(196,115,90,.3);color:#c4735a;background:rgba(0,0,0,.6);}
+.char-profile-link{font-size:.62rem;color:var(--accent);background:transparent;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0;font-family:'Jost',sans-serif;margin-top:3px;display:block;}
 #characters-container{display:flex;flex-direction:column;gap:11px;margin-bottom:11px;}
 .char-card{background:var(--surface2);border:1px solid var(--border-gold);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .char-top{display:flex;align-items:center;justify-content:space-between;}
@@ -169,6 +157,7 @@ select option{background:var(--surface2);}
 .typing-dot{width:4px;height:4px;border-radius:50%;background:var(--muted);animation:tb 1.2s ease infinite;}
 .typing-dot:nth-child(2){animation-delay:.22s;}.typing-dot:nth-child(3){animation-delay:.44s;}
 @keyframes tb{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:.9}}
+@keyframes deePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
 
 .input-area{padding:12px 14px;background:var(--surface);border-top:1px solid var(--border-gold);flex-shrink:0;}
 .input-row{display:flex;gap:8px;align-items:flex-end;}
@@ -244,19 +233,8 @@ select option{background:var(--surface2);}
     </div>
   </div>
   <div class="carousel-wrapper" id="carousel-wrapper">
-    <div class="carousel-nav">
-      <button class="carousel-btn" id="carousel-prev" onclick="carouselPrev()">‹</button>
-      <div class="carousel-dots" id="carousel-dots"></div>
-      <button class="carousel-btn" id="carousel-next" onclick="carouselNext()">›</button>
-    </div>
-    <div class="carousel-track-outer">
-      <div class="carousel-track" id="carousel-track"></div>
-    </div>
-    <div class="char-detail-bar" id="char-detail-bar"></div>
-    <div class="carousel-actions">
-      <button class="btn btn-primary" style="flex:2;" onclick="enterSelectedChar()">Enter Conversation →</button>
-      <button class="btn btn-secondary" style="flex:1;" onclick="viewSelectedProfile()">Profile</button>
-    </div>
+    <div id="dee-presence-bar" style="display:none;margin-bottom:10px;"></div>
+    <div class="chars-grid" id="chars-grid"></div>
   </div>
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
     <div style="display:flex;gap:8px;">
@@ -589,6 +567,7 @@ async function showLobby(){
   badge.style.color=`var(${currentUser.color})`;
   document.getElementById('rj-manage-btn-wrap').style.display=currentUser.role==='rj'?'block':'none';
   await loadChars();
+  if(currentUser.role==='rj') startPresenceListener();
 }
 
 async function loadChars(){
@@ -649,172 +628,64 @@ function startLobbyListener(){
 }
 function stopLobbyListeners(){lobbyUnsubscribers.forEach(u=>u());lobbyUnsubscribers=[];}
 
-// ── CAROUSEL LOBBY ──
-let carouselKeys=[];
-let carouselIndex=0;
-let selectedCharId=null;
-
+// ── CHARACTER GRID LOBBY ──
 function renderCharLobby(){
   let keys=Object.keys(allChars);
   if(currentUser.role==='dee'){
-    // Dee only sees online characters
     keys=keys.filter(id=>allChars[id].isOnline===true&&allChars[id].deeCanAccess!==false);
   }
-  // RJ sees all characters but online ones first
   keys.sort((a,b)=>{
-    const aOnline=allChars[a].isOnline?1:0;
-    const bOnline=allChars[b].isOnline?1:0;
-    if(bOnline!==aOnline) return bOnline-aOnline;
-    const ua=unreadData[a]?1:0,ub=unreadData[b]?1:0;
-    if(ub!==ua) return ub-ua;
+    const ua=unreadData[a]?2:0,ub=unreadData[b]?2:0;
+    const aOn=allChars[a].isOnline?1:0,bOn=allChars[b].isOnline?1:0;
+    if((ub+bOn)!==(ua+aOn)) return (ub+bOn)-(ua+aOn);
     return (allChars[a].name||'').localeCompare(allChars[b].name||'');
   });
-  carouselKeys=keys;
-  carouselIndex=0;
-  selectedCharId=keys[0]||null;
-  buildCarousel();
-  updateCarouselNav();
-  updateDetailBar();
-  attachCarouselTouch();
-}
-
-function buildCarousel(){
-  const track=document.getElementById('carousel-track');
-  const dots=document.getElementById('carousel-dots');
-  if(!track||!dots) return;
-
-  track.innerHTML='';
-  dots.innerHTML='';
-
-  if(!carouselKeys.length){
-    document.getElementById('char-detail-bar').innerHTML='<div class="carousel-empty">No characters yet.</div>';
+  const grid=document.getElementById('chars-grid');
+  if(!grid) return;
+  grid.innerHTML='';
+  if(!keys.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;padding:32px;border:1px solid var(--border-gold);border-radius:12px;">No characters available.</div>';
     return;
   }
-
-  carouselKeys.forEach((charId,i)=>{
+  keys.forEach(charId=>{
     const c=allChars[charId];
-    const color=`var(${c.color||'--ai1'})`;
     const unread=unreadData[charId];
-    const kinkTags=(c.kinks||[]).slice(0,3).map(k=>`<span class="char-kink-tag">${escHtml(k)}</span>`).join('');
-    const sub=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(' · ');
-
+    const color=`var(${c.color||'--ai1'})`;
+    const sub=[c.nationality,c.age?`${c.age}`:''].filter(Boolean).join(', ');
+    const kinkTags=(c.kinks||[]).slice(0,2).map(k=>`<span class="char-grid-kink">${escHtml(k)}</span>`).join('');
     const card=document.createElement('div');
-    card.className='char-card-c';
-    card.dataset.charId=charId;
-    card.dataset.index=i;
-
+    card.className=`char-grid-card${unread?' has-unread':''}`;
     const imgHtml=c.avatar
-      ?`<img class="char-card-img" src="${c.avatar}" draggable="false">`
-      :`<div class="char-card-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
-
+      ?`<img class="char-grid-img" src="${c.avatar}" draggable="false">`
+      :`<div class="char-grid-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
+    const onlineDot=currentUser.role==='rj'
+      ?(c.isOnline?'<div class="char-grid-online"></div>':'<div class="char-grid-offline"></div>')
+      :'';
     card.innerHTML=`
       ${imgHtml}
-      ${unread?`<div class="char-card-unread">${unread.count} new</div>`:''}
-      ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-card-blocked">Dee ✕</div>':''}
-      <div class="char-card-overlay">
-        <div class="char-card-name" style="color:${color}">${escHtml(c.name||'')}</div>
-        <div class="char-card-sub">${escHtml(sub)}</div>
-        <div class="char-card-kinks">${kinkTags}</div>
+      ${onlineDot}
+      ${unread?`<div class="char-grid-unread">${unread.count}</div>`:''}
+      ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-grid-blocked">Dee ✕</div>':''}
+      <div class="char-grid-overlay">
+        <div class="char-grid-name" style="color:${color}">${escHtml(c.name||'')}</div>
+        <div class="char-grid-sub">${escHtml(sub)}</div>
+        <div class="char-grid-kinks">${kinkTags}</div>
+        <button class="char-profile-link" onclick="event.stopPropagation();showCharProfile('${charId}')">Profile</button>
       </div>`;
-
-    track.appendChild(card);
-
-    const dot=document.createElement('div');
-    dot.className=`carousel-dot${i===carouselIndex?' active':''}`;
-    dot.onclick=()=>goToChar(i);
-    dots.appendChild(dot);
+    card.onclick=(e)=>{
+      if(e.target.classList.contains('char-profile-link')) return;
+      currentSetting={id:'online',label:'Online',emoji:'💬',vibe:'Online conversation.'};
+      enterChar(charId);
+    };
+    grid.appendChild(card);
   });
-
-  updateCarouselTransform(false);
 }
-
-function updateCarouselTransform(animated=true){
-  const track=document.getElementById('carousel-track');
-  if(!track) return;
-  track.style.transition=animated?'transform .35s cubic-bezier(.4,0,.2,1)':'none';
-  track.style.transform=`translateX(-${carouselIndex*100}%)`;
-}
-
-function goToChar(index){
-  carouselIndex=Math.max(0,Math.min(index,carouselKeys.length-1));
-  selectedCharId=carouselKeys[carouselIndex];
-  updateCarouselTransform(true);
-  document.querySelectorAll('.carousel-dot').forEach((d,i)=>d.classList.toggle('active',i===carouselIndex));
-  updateDetailBar();
-  updateCarouselNav();
-}
-
-function updateDetailBar(){
-  const bar=document.getElementById('char-detail-bar');
-  if(!bar) return;
-  if(!selectedCharId||!allChars[selectedCharId]){bar.innerHTML='';return;}
-  const c=allChars[selectedCharId];
-  const color=`var(${c.color||'--ai1'})`;
-  const sub=[c.nationality,c.age?`${c.age} years old`:'',c.archetype].filter(Boolean).join(' · ');
-  bar.innerHTML=`
-    <div class="char-detail-name" style="color:${color}">${escHtml(c.name||'')}</div>
-    <div class="char-detail-sub">${escHtml(sub)}</div>
-    ${c.backstory?`<div class="char-detail-bio">${escHtml(c.backstory)}</div>`:''}`;
-}
-
-function updateCarouselNav(){
-  const prev=document.getElementById('carousel-prev');
-  const next=document.getElementById('carousel-next');
-  if(prev) prev.disabled=carouselIndex===0;
-  if(next) next.disabled=carouselIndex>=carouselKeys.length-1;
-}
-
-// Touch drag support
-function attachCarouselTouch(){
-  const outer=document.querySelector('.carousel-track-outer');
-  if(!outer||outer._touchAttached) return;
-  outer._touchAttached=true;
-  let startX=0,startY=0,isDragging=false,dragX=0;
-
-  outer.addEventListener('touchstart',e=>{
-    startX=e.touches[0].clientX;
-    startY=e.touches[0].clientY;
-    isDragging=true;
-    dragX=0;
-    const track=document.getElementById('carousel-track');
-    if(track) track.style.transition='none';
-  },{passive:true});
-
-  outer.addEventListener('touchmove',e=>{
-    if(!isDragging) return;
-    dragX=e.touches[0].clientX-startX;
-    const dragY=e.touches[0].clientY-startY;
-    if(Math.abs(dragY)>Math.abs(dragX)) return; // vertical scroll
-    const track=document.getElementById('carousel-track');
-    if(track) track.style.transform=`translateX(calc(-${carouselIndex*100}% + ${dragX}px))`;
-  },{passive:true});
-
-  outer.addEventListener('touchend',e=>{
-    if(!isDragging) return;
-    isDragging=false;
-    if(dragX<-50&&carouselIndex<carouselKeys.length-1) goToChar(carouselIndex+1);
-    else if(dragX>50&&carouselIndex>0) goToChar(carouselIndex-1);
-    else goToChar(carouselIndex); // snap back
-  },{passive:true});
-}
-
-function carouselPrev(){ if(carouselIndex>0) goToChar(carouselIndex-1); }
-function carouselNext(){ if(carouselIndex<carouselKeys.length-1) goToChar(carouselIndex+1); }
-
-function enterSelectedChar(){
-  if(!selectedCharId) return;
-  currentSetting={id:'online',label:'Online',emoji:'💬',vibe:'An online conversation. Texting from different locations.'};
-  enterChar(selectedCharId);
-}
-function viewSelectedProfile(){
-  if(!selectedCharId) return;
-  showCharProfile(selectedCharId);
-}
-
-window.carouselPrev=carouselPrev;
-window.carouselNext=carouselNext;
-window.enterSelectedChar=enterSelectedChar;
-window.viewSelectedProfile=viewSelectedProfile;
+function buildCarousel(){renderCharLobby();}
+function attachCarouselTouch(){}
+window.carouselPrev=()=>{};
+window.carouselNext=()=>{};
+window.enterSelectedChar=()=>{};
+window.viewSelectedProfile=()=>{};
 
 // ── PROFILE MODAL ──
 function showCharProfile(charId,e){
@@ -1014,6 +885,45 @@ async function saveCast(){
 }
 window.saveCast=saveCast;
 
+// ── DEE PRESENCE ──
+let deePresence=null;
+let presenceUnsubscribe=null;
+
+function startPresenceListener(){
+  if(presenceUnsubscribe){presenceUnsubscribe();presenceUnsubscribe=null;}
+  if(currentUser.role!=='rj') return;
+  const ref=window._ref(window._db,'users/shreya/presence');
+  presenceUnsubscribe=window._onValue(ref,snap=>{
+    deePresence=snap.exists()?snap.val():null;
+    updatePresenceIndicator();
+  });
+}
+
+function updatePresenceIndicator(){
+  const bar=document.getElementById('dee-presence-bar');
+  if(!bar) return;
+  if(deePresence&&deePresence.charName){
+    const char=allChars[deePresence.charId];
+    const color=char?`var(${char.color||'--ai1'})`:'var(--accent)';
+    const avatarHtml=char?.avatar
+      ?`<img src="${char.avatar}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid ${color};">`
+      :`<div style="width:24px;height:24px;border-radius:50%;background:var(--surface2);border:1px solid ${color};display:flex;align-items:center;justify-content:center;font-size:.65rem;color:${color};">${deePresence.charName[0]}</div>`;
+    bar.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(196,166,97,.06);border:1px solid var(--border-gold);border-radius:10px;"><div style="width:7px;height:7px;border-radius:50%;background:#7a9e7a;flex-shrink:0;animation:deePulse 2s infinite;"></div>${avatarHtml}<span style="font-size:.78rem;color:var(--text2);">Dee is with <span style="color:${color};font-family:'Cormorant Garamond',serif;font-style:italic;">${escHtml(deePresence.charName)}</span></span><button onclick="peekAtChar('${deePresence.charId}')" style="margin-left:auto;background:transparent;border:1px solid var(--border-gold);color:var(--accent);font-size:.68rem;padding:3px 9px;border-radius:6px;cursor:pointer;white-space:nowrap;font-family:'Jost',sans-serif;">Join →</button></div>`;
+    bar.style.display='block';
+  } else {
+    bar.innerHTML='';
+    bar.style.display='none';
+  }
+}
+
+async function peekAtChar(charId){
+  if(charId&&allChars[charId]){
+    currentSetting={id:'online',label:'Online',emoji:'💬',vibe:'Online conversation.'};
+    await enterChar(charId);
+  }
+}
+window.peekAtChar=peekAtChar;
+
 // ── ENTER CONVERSATION ──
 async function enterChar(charId){
   stopLobbyListeners();
@@ -1045,6 +955,12 @@ async function enterChar(charId){
     localStorage.setItem('venice_api_key',entered);
     await window._set(window._ref(window._db,'config/apiKey'),entered);
   }
+
+  // Write presence — so RJ can see who Dee is talking to
+  try{
+    const presenceData={charId,charName:char.name,ts:Date.now()};
+    await window._set(window._ref(window._db,`users/${currentUser.role==='rj'?'rohan':'shreya'}/presence`),presenceData);
+  }catch(e){}
 
   // Chat header — show character name and avatar
   const color=`var(${char.color||'--ai1'})`;
@@ -1111,11 +1027,13 @@ async function clearRoomHistory(){
 }
 window.clearRoomHistory=clearRoomHistory;
 
-function backToLobby(){
+async function backToLobby(){
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
+  // Clear presence
+  try{ await window._remove(window._ref(window._db,`users/${currentUser.role==='rj'?'rohan':'shreya'}/presence`)); }catch(e){}
   document.getElementById('chat-screen').style.display='none';
   document.getElementById('chat-screen').classList.remove('active');
-  showLobby();
+  await showLobby();
 }
 window.backToLobby=backToLobby;
 
@@ -1445,6 +1363,7 @@ window.refreshMemoryPanel=refreshMemoryPanel;
 function subscribeMessages(charId){
   const msgsRef=window._ref(window._db,`conversations/${charId}/messages`);
   let initialLoad=true;
+  let lastAIResponseTs=0; // track when AI last responded
   msgUnsubscribe=window._onValue(msgsRef,snap=>{
     if(!snap.exists()){initialLoad=false;return;}
     const data=snap.val();
@@ -1459,14 +1378,16 @@ function subscribeMessages(charId){
     });
     initialLoad=false;
 
-    // RJ's device handles ALL AI responses — including when Dee sends
-    if(latestNewMsg && currentUser.role==='rj' && apiKey){
+    if(latestNewMsg&&currentUser.role==='rj'&&apiKey){
       const sender=latestNewMsg.msg.sender;
-      // Only auto-respond to human messages (RJ or Dee), not AI replies
       const isHuman=(sender==='RJ'||sender==='Dee');
-      if(isHuman && !isLoading){
+      const isAI=!isHuman&&sender!=='SCENE';
+      // If AI just sent — update lastAIResponseTs to block re-triggering
+      if(isAI) lastAIResponseTs=Date.now();
+      // Only trigger on human messages AND not within 8 seconds of last AI response
+      const timeSinceAI=Date.now()-lastAIResponseTs;
+      if(isHuman&&!isLoading&&timeSinceAI>8000){
         const text=latestNewMsg.msg.text;
-        // Random initial delay — like a real person reading before responding (1.5s - 4s)
         const readDelay=1500+Math.random()*2500;
         setTimeout(async()=>{
           if(isLoading) return;
@@ -1619,9 +1540,19 @@ async function getAIResponse(charIdx){
   const systemPrompt=`${briefingContext}You are ${char.name}.${charAgeStr}${natStr} ${char.archetype}.${commStr}${interestsStr}${kinksStr}${flawStr}${backstoryStr}${quirksStr}${extraDesc}
 ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who may be present:\n${othersDesc}\n`:''}
 ${memoryContext}
-IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said in the conversation. Let the relationship develop naturally. Start warm but as a stranger. Let curiosity and attraction build through the conversation itself.
+IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said. Let curiosity build naturally.
 
-Adjust intensity to match the current temperature level. Write like a real person texting — casual, spontaneous, natural. No disclaimers, no name prefix, just the message.`;
+TEXTING RULES — follow these exactly:
+- Write EXACTLY like a real person texting on their phone
+- Maximum 10-12 words per message. Often less. Never more than 15.
+- Split into 2-3 separate short messages if you have more to say. Separate each with a newline.
+- React first, then add. e.g. "haha wait" then new line "that actually makes sense"
+- Incomplete thoughts are fine. Trailing off is fine.
+- No punctuation at end of casual messages
+- No full sentences when fragments work
+- Lowercase mostly. Occasional caps for emphasis.
+- No paragraphs. No essays. No explanations.
+- Keep them wanting more. End with energy, not a full stop.`;
 
   console.log('Venice chat call — key length:',apiKey?.length,'starts:',apiKey?.slice(0,10));
   try{
@@ -1632,10 +1563,10 @@ Adjust intensity to match the current temperature level. Write like a real perso
         model:selectedModel,
         messages:[
           {role:'system', content:systemPrompt},
-          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nNow reply as ${char.name}. One message only. No name prefix.`}
+          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. 1-3 short text messages, each on a new line. Max 12 words each. No name prefix.`}
         ],
-        max_tokens:350,
-        temperature:0.93,
+        max_tokens:120,
+        temperature:0.95,
         venice_parameters:{include_venice_system_prompt:false}
       })
     });
@@ -1645,18 +1576,23 @@ Adjust intensity to match the current temperature level. Write like a real perso
       addLocalError(`API error (${res.status}): ${err.error?.message||res.statusText}`);
     } else {
       const data=await res.json();
-      const reply=data.choices?.[0]?.message?.content?.trim()||'…';
-      // Typing delay: 300ms per word, 2s min, 6s max + variance
-      const wordCount=reply.trim().split(/\s+/).length;
-      const baseDelay=Math.min(Math.max(wordCount*300,2000),6000);
-      const variance=(Math.random()-0.5)*600;
-      const typingDelay=Math.round(baseDelay+variance);
-      // Keep existing typing indicator visible during delay, then remove and push
-      await new Promise(r=>setTimeout(r,typingDelay));
+      const fullReply=data.choices?.[0]?.message?.content?.trim()||'…';
+      // Split into individual messages by newline
+      const messages=fullReply.split('\n').map(m=>m.trim()).filter(m=>m.length>0);
       typingEl.remove();
-      await pushMessage(char.name,reply,char.color);
+      // Send each message with a realistic gap between them
+      for(let i=0;i<messages.length;i++){
+        if(i>0){
+          // Show typing indicator between burst messages
+          const burstTyping=addLocalTyping(char);
+          const gap=1500+Math.random()*2000;
+          await new Promise(r=>setTimeout(r,gap));
+          burstTyping.remove();
+        }
+        await pushMessage(char.name,messages[i],char.color);
+      }
       // Trigger memory compression every 20 messages
-      if(knownMsgKeys.size>0 && knownMsgKeys.size%20===0){
+      if(knownMsgKeys.size>0&&knownMsgKeys.size%20===0){
         setTimeout(()=>compressMemory(),2000);
       }
     }
