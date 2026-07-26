@@ -234,6 +234,23 @@ select option{background:var(--surface2);}
   </div>
   <div class="carousel-wrapper" id="carousel-wrapper">
     <div id="dee-presence-bar" style="display:none;margin-bottom:10px;"></div>
+
+    <!-- Filter bar — visible to both -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;width:100%;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:.72rem;color:var(--muted);">Online only</span>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
+          <input type="checkbox" id="online-filter-toggle" onchange="applyLobbyFilter()" style="opacity:0;width:0;height:0;">
+          <span id="online-filter-track" style="position:absolute;inset:0;background:var(--border);border-radius:20px;transition:.2s;"></span>
+          <span id="online-filter-thumb" style="position:absolute;left:3px;top:3px;width:14px;height:14px;background:white;border-radius:50%;transition:.2s;"></span>
+        </label>
+      </div>
+      <!-- RJ view mode toggle -->
+      <div id="rj-view-toggle" style="display:none;">
+        <button onclick="toggleViewMode()" id="view-mode-btn" style="background:transparent;border:1px solid var(--border-gold);color:var(--accent);font-size:.7rem;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:'Jost',sans-serif;">👁 Dee's View</button>
+      </div>
+    </div>
+
     <div class="chars-grid" id="chars-grid"></div>
   </div>
   <div style="width:100%;max-width:640px;margin-top:14px;" id="rj-manage-btn-wrap">
@@ -566,6 +583,12 @@ async function showLobby(){
   badge.style.borderColor=`var(${currentUser.color})`;
   badge.style.color=`var(${currentUser.color})`;
   document.getElementById('rj-manage-btn-wrap').style.display=currentUser.role==='rj'?'block':'none';
+  const viewToggle=document.getElementById('rj-view-toggle');
+  if(viewToggle) viewToggle.style.display=currentUser.role==='rj'?'block':'none';
+  // Reset view mode on lobby load
+  rjViewingAsDee=false;
+  const btn=document.getElementById('view-mode-btn');
+  if(btn){btn.textContent="👁 Dee's View";btn.style.borderColor='var(--border-gold)';btn.style.color='var(--accent)';}
   await loadChars();
   if(currentUser.role==='rj') startPresenceListener();
 }
@@ -631,22 +654,32 @@ function stopLobbyListeners(){lobbyUnsubscribers.forEach(u=>u());lobbyUnsubscrib
 // ── CHARACTER GRID LOBBY ──
 function renderCharLobby(){
   let keys=Object.keys(allChars);
-  if(currentUser.role==='dee'){
+  const viewingAsDee=currentUser.role==='dee'||rjViewingAsDee;
+
+  if(viewingAsDee){
+    // Dee sees only online characters she has access to
     keys=keys.filter(id=>allChars[id].isOnline===true&&allChars[id].deeCanAccess!==false);
+  } else {
+    // RJ sees all — apply optional online filter
+    if(onlineFilterOn) keys=keys.filter(id=>allChars[id].isOnline===true);
   }
+
   keys.sort((a,b)=>{
     const ua=unreadData[a]?2:0,ub=unreadData[b]?2:0;
     const aOn=allChars[a].isOnline?1:0,bOn=allChars[b].isOnline?1:0;
     if((ub+bOn)!==(ua+aOn)) return (ub+bOn)-(ua+aOn);
     return (allChars[a].name||'').localeCompare(allChars[b].name||'');
   });
+
   const grid=document.getElementById('chars-grid');
   if(!grid) return;
   grid.innerHTML='';
+
   if(!keys.length){
     grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-style:italic;padding:32px;border:1px solid var(--border-gold);border-radius:12px;">No characters available.</div>';
     return;
   }
+
   keys.forEach(charId=>{
     const c=allChars[charId];
     const unread=unreadData[charId];
@@ -658,14 +691,16 @@ function renderCharLobby(){
     const imgHtml=c.avatar
       ?`<img class="char-grid-img" src="${c.avatar}" draggable="false">`
       :`<div class="char-grid-placeholder" style="color:${color};">${c.name?.[0]||'?'}</div>`;
-    const onlineDot=currentUser.role==='rj'
+    // Show online/offline dot only when RJ is in director view
+    const onlineDot=(!viewingAsDee&&currentUser.role==='rj')
       ?(c.isOnline?'<div class="char-grid-online"></div>':'<div class="char-grid-offline"></div>')
       :'';
+    const blockedBadge=(!viewingAsDee&&currentUser.role==='rj'&&c.deeCanAccess===false)
+      ?'<div class="char-grid-blocked">Dee ✕</div>':'';
     card.innerHTML=`
       ${imgHtml}
-      ${onlineDot}
+      ${onlineDot}${blockedBadge}
       ${unread?`<div class="char-grid-unread">${unread.count}</div>`:''}
-      ${currentUser.role==='rj'&&c.deeCanAccess===false?'<div class="char-grid-blocked">Dee ✕</div>':''}
       <div class="char-grid-overlay">
         <div class="char-grid-name" style="color:${color}">${escHtml(c.name||'')}</div>
         <div class="char-grid-sub">${escHtml(sub)}</div>
@@ -686,6 +721,37 @@ window.carouselPrev=()=>{};
 window.carouselNext=()=>{};
 window.enterSelectedChar=()=>{};
 window.viewSelectedProfile=()=>{};
+
+// ── LOBBY FILTER & VIEW MODE ──
+let onlineFilterOn=false;
+let rjViewingAsDee=false;
+
+function applyLobbyFilter(){
+  const toggle=document.getElementById('online-filter-toggle');
+  onlineFilterOn=toggle.checked;
+  // Update toggle visual
+  const track=document.getElementById('online-filter-track');
+  const thumb=document.getElementById('online-filter-thumb');
+  if(track) track.style.background=onlineFilterOn?'var(--accent)':'var(--border)';
+  if(thumb) thumb.style.left=onlineFilterOn?'19px':'3px';
+  renderCharLobby();
+}
+
+function toggleViewMode(){
+  rjViewingAsDee=!rjViewingAsDee;
+  const btn=document.getElementById('view-mode-btn');
+  if(btn){
+    btn.textContent=rjViewingAsDee?'🎬 Director View':'👁 Dee\'s View';
+    btn.style.borderColor=rjViewingAsDee?'#7a9e7a':'var(--border-gold)';
+    btn.style.color=rjViewingAsDee?'#7a9e7a':'var(--accent)';
+  }
+  // Show/hide RJ controls based on view mode
+  const rjControls=document.getElementById('rj-manage-btn-wrap');
+  if(rjControls) rjControls.style.display=rjViewingAsDee?'none':'block';
+  renderCharLobby();
+}
+window.applyLobbyFilter=applyLobbyFilter;
+window.toggleViewMode=toggleViewMode;
 
 // ── PROFILE MODAL ──
 function showCharProfile(charId,e){
