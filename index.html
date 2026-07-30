@@ -420,6 +420,10 @@ select option{background:var(--surface2);}
         <button class="btn btn-secondary" style="width:100%;padding:6px;font-size:.78rem;margin-top:8px;" onclick="compressMemory().then(refreshMemoryPanel)">⚡ Compress Now</button>
       </div>
     </div>
+    <!-- Save & Close -->
+    <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+      <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="toggleDirectorPanel()">✓ Save & Close</button>
+    </div>
   </div>
 </div>
 
@@ -1498,7 +1502,17 @@ function subscribeMessages(charId){
       if(isHuman&&!isLoading&&timeSinceAI>8000){
         const text=latestNewMsg.msg.text;
         const readDelay=20000+Math.random()*70000; // 20-90 seconds like a real person
+        // Show typing only in the last 8-15 seconds of the delay (realistic)
+        const typingWindow=8000+Math.random()*7000;
+        const typingStartDelay=Math.max(1000, readDelay-typingWindow);
+        const responderIdx=detectMentions(text).length>0?detectMentions(text)[0]:pickResponder();
+        const responderChar=characters[responderIdx];
+        let earlyTypingEl=null;
+        setTimeout(()=>{
+          if(!isLoading&&responderChar) earlyTypingEl=addLocalTyping(responderChar);
+        },typingStartDelay);
         setTimeout(async()=>{
+          if(earlyTypingEl){earlyTypingEl.remove();earlyTypingEl=null;}
           if(isLoading) return;
           const mentions=detectMentions(text);
           if(mentions.length>0){
@@ -1738,14 +1752,14 @@ ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who
 ${memoryContext}
 IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said. Let curiosity build naturally.
 
-HOW TO TEXT — be a real person:
-- Default: ONE message. 5-8 words. That is it.
-- Only send TWO messages (on separate lines) when genuinely reacting to something — excitement, surprise, a follow-up thought. Maybe 25% of the time.
-- THREE messages only in rare moments. Maybe 5% of the time.
-- Each message: max 10 words. Lowercase. No punctuation at end.
-- Incomplete thoughts are perfect. Trailing off is perfect.
-- No explaining. No summarising. Just react.
-- Leave space. Let them respond.`;
+HOW TO TEXT — be a real person, not a chatbot:
+- ONE message usually. 5-8 words. Sometimes two. Rarely three.
+- Never just answer a question and stop. That kills conversation.
+- Always do at least one of: ask something back, reveal something about yourself, say something unexpected, leave a thought unfinished.
+- Be genuinely curious. You want to know more about this person.
+- Tease a little. Disagree sometimes. Have opinions.
+- Lowercase. No punctuation at end. Incomplete is fine.
+- Think: what would make THEM want to reply?`;
 
   console.log('Venice chat call — key length:',apiKey?.length,'starts:',apiKey?.slice(0,10));
   try{
@@ -1756,7 +1770,7 @@ HOW TO TEXT — be a real person:
         model:selectedModel,
         messages:[
           {role:'system', content:systemPrompt},
-          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. Usually ONE short message (5-8 words). Only use multiple lines if genuinely needed. No name prefix.`}
+          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. Short, real, curious. Don't just answer — keep it going. No name prefix.`}
         ],
         max_tokens:60,
         temperature:0.95,
