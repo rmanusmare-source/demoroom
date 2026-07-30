@@ -1501,9 +1501,9 @@ function subscribeMessages(charId){
       const timeSinceAI=Date.now()-lastAIResponseTs;
       if(isHuman&&!isLoading&&timeSinceAI>8000){
         const text=latestNewMsg.msg.text;
-        const readDelay=20000+Math.random()*70000; // 20-90 seconds like a real person
+        const readDelay=8000+Math.random()*22000; // 8-30 seconds
         // Show typing only in the last 8-15 seconds of the delay (realistic)
-        const typingWindow=8000+Math.random()*7000;
+        const typingWindow=5000+Math.random()*3000;
         const typingStartDelay=Math.max(1000, readDelay-typingWindow);
         const responderIdx=detectMentions(text).length>0?detectMentions(text)[0]:pickResponder();
         const responderChar=characters[responderIdx];
@@ -1758,7 +1758,8 @@ HOW TO TEXT — be a real person, not a chatbot:
 - Always do at least one of: ask something back, reveal something about yourself, say something unexpected, leave a thought unfinished.
 - Be genuinely curious. You want to know more about this person.
 - Tease a little. Disagree sometimes. Have opinions.
-- Lowercase. No punctuation at end. Incomplete is fine.
+- Lowercase mostly. Natural punctuation is fine — commas, ellipsis, question marks, exclamation where they feel right.
+- Use parentheses for asides naturally, like real texting — (not gonna lie), (which is wild), (don't quote me on that)
 - Think: what would make THEM want to reply?`;
 
   console.log('Venice chat call — key length:',apiKey?.length,'starts:',apiKey?.slice(0,10));
