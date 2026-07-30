@@ -346,6 +346,7 @@ select option{background:var(--surface2);}
       <div class="chat-room-name" id="chat-room-name">Room</div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
         <div class="conn-dot"></div>
+        <div id="dee-in-chat-dot" title="Dee not here" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;display:none;"></div>
         <div class="who-badge" id="who-badge"></div>
         <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
         <button class="btn-back" id="btn-remove-dee" onclick="removeDeeFromChat()" style="display:none;border-color:#7f1d1d;color:#f87171;">✕ Dee</button>
@@ -1086,7 +1087,11 @@ async function enterChar(charId){
   }
 
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
-  document.getElementById('btn-remove-dee').style.display=currentUser.role==='rj'?'block':'none';
+  // Dee presence dot — RJ only
+  const deeDot=document.getElementById('dee-in-chat-dot');
+  if(deeDot) deeDot.style.display=currentUser.role==='rj'?'block':'none';
+  document.getElementById('btn-remove-dee').style.display='none'; // hidden until Dee arrives
+  if(currentUser.role==='rj') startDeeInChatListener(charId);
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
@@ -1126,7 +1131,7 @@ window.clearRoomHistory=clearRoomHistory;
 
 async function backToLobby(){
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
-  // Clear presence
+  if(deeInChatUnsubscribe){deeInChatUnsubscribe();deeInChatUnsubscribe=null;}
   try{ await window._remove(window._ref(window._db,`users/${currentUser.role==='rj'?'rohan':'shreya'}/presence`)); }catch(e){}
   document.getElementById('chat-screen').style.display='none';
   document.getElementById('chat-screen').classList.remove('active');
@@ -1556,12 +1561,53 @@ async function deleteMessage(msgKey){
 }
 
 async function removeDeeFromChat(){
-  if(!confirm('Remove Dee from this conversation?')) return;
-  await window._set(window._ref(window._db,'users/shreya/removed'),{charId:currentCharId,ts:Date.now()});
-  await window._remove(window._ref(window._db,'users/shreya/presence')).catch(()=>{});
+  const btn=document.getElementById('btn-remove-dee');
+  if(btn) btn.textContent='removing...';
+  try{
+    await window._set(window._ref(window._db,'users/shreya/removed'),{charId:currentCharId,ts:Date.now()});
+    await window._remove(window._ref(window._db,'users/shreya/presence')).catch(()=>{});
+    if(btn){
+      btn.textContent='✓ Dee removed';
+      btn.style.color='#7a9e7a';
+      btn.style.borderColor='#7a9e7a';
+      setTimeout(()=>{
+        btn.textContent='✕ Dee';
+        btn.style.color='#f87171';
+        btn.style.borderColor='#7f1d1d';
+        updateDeeInChatIndicator(false);
+      },3000);
+    }
+  }catch(e){
+    if(btn){btn.textContent='✕ Dee';addLocalError('Failed to remove Dee.');}
+  }
 }
-window.deleteMessage=deleteMessage;
 window.removeDeeFromChat=removeDeeFromChat;
+
+// ── DEE IN CHAT INDICATOR ──
+let deeInChatUnsubscribe=null;
+
+function startDeeInChatListener(charId){
+  if(deeInChatUnsubscribe){deeInChatUnsubscribe();deeInChatUnsubscribe=null;}
+  if(currentUser.role!=='rj') return;
+  const ref=window._ref(window._db,'users/shreya/presence');
+  deeInChatUnsubscribe=window._onValue(ref,snap=>{
+    const presence=snap.exists()?snap.val():null;
+    const isHere=presence&&presence.charId===charId;
+    updateDeeInChatIndicator(isHere);
+  });
+}
+
+function updateDeeInChatIndicator(isHere){
+  let dot=document.getElementById('dee-in-chat-dot');
+  const btn=document.getElementById('btn-remove-dee');
+  if(!dot) return;
+  dot.style.background=isHere?'#7a9e7a':'var(--muted)';
+  dot.title=isHere?'Dee is in this chat':'Dee is not here';
+  if(btn){
+    btn.style.display=isHere?'block':'none';
+  }
+}
+window.startDeeInChatListener=startDeeInChatListener;
 
 async function pushMessage(sender,text,colorVar){
   await window._push(window._ref(window._db,`conversations/${currentCharId}/messages`),{sender,text,colorVar:colorVar||null,ts:Date.now()});
