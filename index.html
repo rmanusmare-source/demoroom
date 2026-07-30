@@ -678,8 +678,8 @@ function renderCharLobby(){
   const viewingAsDee=currentUser.role==='dee'||rjViewingAsDee;
 
   if(viewingAsDee){
-    // Dee sees only online characters she has access to
-    keys=keys.filter(id=>allChars[id].isOnline===true&&allChars[id].deeCanAccess!==false);
+    // Dee sees only online characters she has access to, and not solo mode
+    keys=keys.filter(id=>allChars[id].isOnline===true&&allChars[id].deeCanAccess!==false&&!allChars[id].soloMode);
   } else {
     // RJ sees all — apply optional online filter
     if(onlineFilterOn) keys=keys.filter(id=>allChars[id].isOnline===true);
@@ -1020,8 +1020,7 @@ async function enterChar(charId){
   stopLobbyListeners();
   const char=allChars[charId];
   if(!char){alert('Character not found.');return;}
-  if(currentUser.role==='dee'&&char.deeCanAccess===false){alert('Not available.');return;}
-  if(currentUser.role==='dee'&&char.soloMode){
+  if(currentUser.role==='dee'&&(char.deeCanAccess===false||char.soloMode)){
     alert('This conversation is private.');return;
   }
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
