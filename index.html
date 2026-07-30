@@ -25,12 +25,12 @@
   --ai5:#8db09b;--ai6:#b08d9b;--ai7:#9db08d;--ai8:#8da8b0;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;}
 
-.screen{display:none;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:24px 16px;overflow-y:auto;
+.screen{display:none;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;min-height:100dvh;padding:24px 16px;overflow-y:auto;
   background:radial-gradient(ellipse at 70% 0%,rgba(196,166,97,.06) 0%,transparent 55%),radial-gradient(ellipse at 15% 100%,rgba(158,107,127,.07) 0%,transparent 50%),var(--bg);}
 .screen.active{display:flex;}
-#chat-screen{display:none;flex-direction:column;height:100vh;}
+#chat-screen{display:none;flex-direction:column;height:100vh;height:100dvh;}
 #chat-screen.active{display:flex;}
 
 /* CARDS & TYPOGRAPHY */
@@ -158,6 +158,23 @@ select option{background:var(--surface2);}
 .typing-dot:nth-child(2){animation-delay:.22s;}.typing-dot:nth-child(3){animation-delay:.44s;}
 @keyframes tb{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:.9}}
 @keyframes deePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
+
+/* MOBILE FIXES */
+@media(max-width:480px){
+  .card{padding:24px 16px;border-radius:14px;}
+  .wide-card{padding:20px 14px;}
+  .chat-header{padding:10px 12px;}
+  .messages{padding:12px 10px;gap:10px;}
+  .msg-bubble{font-size:.85rem;padding:8px 11px;}
+  .input-area{padding:10px 10px 10px;padding-bottom:max(10px,env(safe-area-inset-bottom));}
+  #msg-input{font-size:16px;} /* prevents iOS zoom on focus */
+  .send-btn{width:40px;height:40px;}
+  .chars-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .char-grid-name{font-size:.9rem;}
+  .director-panel{max-width:100% !important;width:100% !important;}
+  .lobby-header{padding:0 0 8px;}
+  .btn{padding:12px;font-size:.88rem;}
+}
 
 .input-area{padding:12px 14px;background:var(--surface);border-top:1px solid var(--border-gold);flex-shrink:0;}
 .input-row{display:flex;gap:8px;align-items:flex-end;}
@@ -331,6 +348,7 @@ select option{background:var(--surface2);}
         <div class="conn-dot"></div>
         <div class="who-badge" id="who-badge"></div>
         <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
+        <button class="btn-back" id="btn-remove-dee" onclick="removeDeeFromChat()" style="display:none;border-color:#7f1d1d;color:#f87171;">✕ Dee</button>
         <button class="btn-back" onclick="backToLobby()" style="white-space:nowrap;">← Back</button>
       </div>
     </div>
@@ -1068,11 +1086,24 @@ async function enterChar(charId){
   }
 
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
+  document.getElementById('btn-remove-dee').style.display=currentUser.role==='rj'?'block':'none';
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
   lastResponderIdx=null;
   try{await markRoomRead(charId);}catch(e){}
   subscribeMessages(charId);
+
+  // Dee listens for removal signal from RJ
+  if(currentUser.role==='dee'){
+    const removedRef=window._ref(window._db,'users/shreya/removed');
+    window._onValue(removedRef,async snap=>{
+      if(snap.exists()&&snap.val()?.charId===charId){
+        await window._remove(removedRef).catch(()=>{});
+        addDivider('You have been removed from this conversation');
+        setTimeout(()=>backToLobby(),1500);
+      }
+    });
+  }
 
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('chat-screen').style.display='flex';
@@ -1438,7 +1469,7 @@ function subscribeMessages(charId){
     entries.forEach(([key,msg])=>{
       if(!knownMsgKeys.has(key)){
         knownMsgKeys.add(key);
-        renderMessage(msg);
+        renderMessage(msg,key);
         if(!initialLoad) latestNewMsg={key,msg};
       }
     });
@@ -1476,12 +1507,9 @@ function subscribeMessages(charId){
   });
 }
 
-function renderMessage(msg){
+function renderMessage(msg,msgKey){
   const msgs=document.getElementById('messages');
-  
-  // Skip scene cards entirely — no commentary in chat
   if(msg.type==='scene') return;
-  
   const isRJ=msg.sender==='RJ'; const isDee=msg.sender==='Dee';
   let cls='from-ai';
   if(isRJ) cls='from-rj'; else if(isDee) cls='from-dee';
@@ -1489,13 +1517,51 @@ function renderMessage(msg){
   const color=`var(${colorVar})`;
   const cleanText=msg.text.replace(/^\[([^\]]+)\]:\s*/,'');
   const bubbleHtml=escHtml(cleanText).replace(/@(\w+)/g,'<span class="tag-highlight">@$1</span>');
-  const div=document.createElement('div');div.className=`msg ${cls}`;
-  const avatarContent=(!isRJ&&!isDee&&msg.colorVar)?
-    (()=>{const char=characters.find(c=>c.color===msg.colorVar||`--${msg.colorVar}`===c.color||(msg.colorVar&&c.color&&msg.colorVar===c.color));return char?.avatar?`<img src="${char.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`:`${msg.sender.slice(0,2).toUpperCase()}`;})()
-    :msg.sender.slice(0,2).toUpperCase();
+  const div=document.createElement('div');
+  div.className=`msg ${cls}`;
+  div.dataset.msgKey=msgKey||'';
+  const char=characters.find(ch=>ch.color===colorVar);
+  const avatarContent=char?.avatar
+    ?`<img src="${char.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    :`${msg.sender.slice(0,2).toUpperCase()}`;
   div.innerHTML=`<div class="msg-avatar" style="border-color:${color};color:${color};overflow:hidden;">${avatarContent}</div><div class="msg-body"><div class="msg-sender" style="color:${color}">${escHtml(msg.sender)}</div><div class="msg-bubble">${bubbleHtml}</div></div>`;
+
+  // Delete: long press on mobile, right-click on desktop — RJ only
+  if(currentUser?.role==='rj'&&msgKey){
+    let pressTimer;
+    const showDelete=()=>{
+      if(div.querySelector('.msg-del-btn')) return;
+      const btn=document.createElement('button');
+      btn.className='msg-del-btn';
+      btn.textContent='🗑';
+      btn.style.cssText='position:absolute;top:-8px;right:-8px;background:#7f1d1d;border:none;border-radius:50%;width:22px;height:22px;font-size:.6rem;cursor:pointer;color:#fff;z-index:10;';
+      btn.onclick=(e)=>{e.stopPropagation();deleteMessage(msgKey);};
+      div.style.position='relative';
+      div.appendChild(btn);
+      setTimeout(()=>btn?.remove(),3000);
+    };
+    div.addEventListener('touchstart',()=>{pressTimer=setTimeout(showDelete,600)},{passive:true});
+    div.addEventListener('touchend',()=>clearTimeout(pressTimer),{passive:true});
+    div.addEventListener('touchmove',()=>clearTimeout(pressTimer),{passive:true});
+    div.addEventListener('contextmenu',(e)=>{e.preventDefault();showDelete();});
+  }
   msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
 }
+
+async function deleteMessage(msgKey){
+  if(!msgKey||!currentCharId) return;
+  await window._remove(window._ref(window._db,`conversations/${currentCharId}/messages/${msgKey}`));
+  const el=document.querySelector(`[data-msg-key="${msgKey}"]`);
+  if(el) el.remove();
+}
+
+async function removeDeeFromChat(){
+  if(!confirm('Remove Dee from this conversation?')) return;
+  await window._set(window._ref(window._db,'users/shreya/removed'),{charId:currentCharId,ts:Date.now()});
+  await window._remove(window._ref(window._db,'users/shreya/presence')).catch(()=>{});
+}
+window.deleteMessage=deleteMessage;
+window.removeDeeFromChat=removeDeeFromChat;
 
 async function pushMessage(sender,text,colorVar){
   await window._push(window._ref(window._db,`conversations/${currentCharId}/messages`),{sender,text,colorVar:colorVar||null,ts:Date.now()});
