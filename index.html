@@ -345,8 +345,10 @@ select option{background:var(--surface2);}
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;">
       <div class="chat-room-name" id="chat-room-name">Room</div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <div class="conn-dot"></div>
-        <div id="dee-in-chat-dot" title="Dee not here" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;display:none;"></div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;" id="dee-chat-status" style="display:none;">
+          <div id="dee-in-chat-dot" title="Dee not here" style="width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;"></div>
+          <span id="dee-chat-label" style="font-size:.6rem;color:var(--muted);transition:color .3s;">Dee</span>
+        </div>
         <div class="who-badge" id="who-badge"></div>
         <button class="btn-back" id="btn-clear-history" onclick="clearRoomHistory()" style="display:none;border-color:#7f1d1d;color:#f87171;">🗑</button>
         <button class="btn-back" id="btn-remove-dee" onclick="removeDeeFromChat()" style="display:none;border-color:#7f1d1d;color:#f87171;">✕ Dee</button>
@@ -716,9 +718,13 @@ function renderCharLobby(){
       :'';
     const blockedBadge=(!viewingAsDee&&currentUser.role==='rj'&&c.deeCanAccess===false)
       ?'<div class="char-grid-blocked">Dee ✕</div>':'';
+    // Solo lock button — RJ only, top right of card
+    const soloLock=(!viewingAsDee&&currentUser.role==='rj')
+      ?`<button class="char-grid-solo" onclick="event.stopPropagation();toggleSoloMode('${charId}',this)" title="${c.soloMode?'Solo — Dee cannot enter':'Shared — Dee can enter'}" style="position:absolute;top:8px;right:8px;background:${c.soloMode?'rgba(196,166,97,.9)':'rgba(0,0,0,.5)'};border:none;border-radius:50%;width:26px;height:26px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">${c.soloMode?'🔒':'🔓'}</button>`
+      :'';
     card.innerHTML=`
       ${imgHtml}
-      ${onlineDot}${blockedBadge}
+      ${onlineDot}${blockedBadge}${soloLock}
       ${unread?`<div class="char-grid-unread">${unread.count}</div>`:''}
       <div class="char-grid-overlay">
         <div class="char-grid-name" style="color:${color}">${escHtml(c.name||'')}</div>
@@ -1015,6 +1021,9 @@ async function enterChar(charId){
   const char=allChars[charId];
   if(!char){alert('Character not found.');return;}
   if(currentUser.role==='dee'&&char.deeCanAccess===false){alert('Not available.');return;}
+  if(currentUser.role==='dee'&&char.soloMode){
+    alert('This conversation is private.');return;
+  }
   if(msgUnsubscribe){msgUnsubscribe();msgUnsubscribe=null;}
 
   currentCharId=charId;
@@ -1087,10 +1096,9 @@ async function enterChar(charId){
   }
 
   document.getElementById('btn-clear-history').style.display=currentUser.role==='rj'?'block':'none';
-  // Dee presence dot — RJ only
-  const deeDot=document.getElementById('dee-in-chat-dot');
-  if(deeDot) deeDot.style.display=currentUser.role==='rj'?'block':'none';
-  document.getElementById('btn-remove-dee').style.display='none'; // hidden until Dee arrives
+  const deeDot=document.getElementById('dee-chat-status');
+  if(deeDot) deeDot.style.display=currentUser.role==='rj'?'flex':'none';
+  document.getElementById('btn-remove-dee').style.display='none';
   if(currentUser.role==='rj') startDeeInChatListener(charId);
   document.getElementById('messages').innerHTML='';
   knownMsgKeys=new Set();
@@ -1583,6 +1591,18 @@ async function removeDeeFromChat(){
 }
 window.removeDeeFromChat=removeDeeFromChat;
 
+async function toggleSoloMode(charId,btn){
+  const c=allChars[charId];
+  if(!c) return;
+  const newSolo=!c.soloMode;
+  c.soloMode=newSolo;
+  await window._set(window._ref(window._db,`characters/${charId}/soloMode`),newSolo);
+  btn.textContent=newSolo?'🔒':'🔓';
+  btn.style.background=newSolo?'rgba(196,166,97,.9)':'rgba(0,0,0,.5)';
+  btn.title=newSolo?'Solo — Dee cannot enter':'Shared — Dee can enter';
+}
+window.toggleSoloMode=toggleSoloMode;
+
 // ── DEE IN CHAT INDICATOR ──
 let deeInChatUnsubscribe=null;
 
@@ -1598,14 +1618,13 @@ function startDeeInChatListener(charId){
 }
 
 function updateDeeInChatIndicator(isHere){
-  let dot=document.getElementById('dee-in-chat-dot');
+  const dot=document.getElementById('dee-in-chat-dot');
+  const label=document.getElementById('dee-chat-label');
+  const status=document.getElementById('dee-chat-status');
   const btn=document.getElementById('btn-remove-dee');
-  if(!dot) return;
-  dot.style.background=isHere?'#7a9e7a':'var(--muted)';
-  dot.title=isHere?'Dee is in this chat':'Dee is not here';
-  if(btn){
-    btn.style.display=isHere?'block':'none';
-  }
+  if(dot){dot.style.background=isHere?'#7a9e7a':'var(--muted)';}
+  if(label){label.textContent=isHere?'Dee here':'Dee away';label.style.color=isHere?'#7a9e7a':'var(--muted)';}
+  if(btn){btn.style.display=isHere?'block':'none';}
 }
 window.startDeeInChatListener=startDeeInChatListener;
 
