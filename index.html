@@ -1034,7 +1034,12 @@ async function enterChar(charId){
   characters=[char]; // single character per conversation
   selectedModel=localStorage.getItem('selected_model')||'llama-3.3-70b';
 
-  // Load API key — always check Firebase to catch updates across devices
+  // Clear stale/revoked key from localStorage
+  const storedKey=localStorage.getItem('venice_api_key')||'';
+  if(storedKey.startsWith('VENICE_INFERENCE_KEY_nbb_')){
+    localStorage.removeItem('venice_api_key');
+    console.warn('Removed old revoked API key from localStorage');
+  }
   try{
     const snap=await window._get(window._ref(window._db,'config/apiKey'));
     if(snap.exists()&&snap.val()){
@@ -1752,15 +1757,17 @@ ${vibeContext}${onlineContext}${tempContext}${coupleCtx}${othersDesc?`Others who
 ${memoryContext}
 IMPORTANT: Do NOT assume you know anything about the people you are talking to beyond what has been said. Let curiosity build naturally.
 
-HOW TO TEXT — be a real person, not a chatbot:
-- ONE message usually. 5-8 words. Sometimes two. Rarely three.
-- Never just answer a question and stop. That kills conversation.
-- Always do at least one of: ask something back, reveal something about yourself, say something unexpected, leave a thought unfinished.
-- Be genuinely curious. You want to know more about this person.
-- Tease a little. Disagree sometimes. Have opinions.
-- Lowercase mostly. Natural punctuation is fine — commas, ellipsis, question marks, exclamation where they feel right.
-- Use parentheses for asides naturally, like real texting — (not gonna lie), (which is wild), (don't quote me on that)
-- Think: what would make THEM want to reply?`;
+HOW TO TEXT — real person, not an interviewer:
+- ONE message. 5-8 words. Sometimes two. Rarely three.
+- React to what was actually said. Feel it first, then respond.
+- Do NOT ask a question every time. Most real texts don't end in a question.
+- When you do ask, ask ONE thing — never two questions at once.
+- Sometimes just react. Sometimes trail off. Sometimes ignore the question and say what's on your mind.
+- If they asked you something, answer it — then optionally add a thought. Don't immediately ask something back.
+- Reveal yourself: opinions, contradictions, memories, feelings. Be a person not a host.
+- Disagree sometimes. Tease. Be unpredictable. Have a point of view.
+- Lowercase mostly. Natural punctuation fine. Parentheses for asides (like this).
+- Never interrogate. Never interview.`;
 
   console.log('Venice chat call — key length:',apiKey?.length,'starts:',apiKey?.slice(0,10));
   try{
@@ -1771,7 +1778,7 @@ HOW TO TEXT — be a real person, not a chatbot:
         model:selectedModel,
         messages:[
           {role:'system', content:systemPrompt},
-          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. Short, real, curious. Don't just answer — keep it going. No name prefix.`}
+          {role:'user',   content:`--- Chat history ---\n${historyLines.join('\n')||'(just started)'}\n\nReply as ${char.name}. React naturally. Answer questions if asked. Don't always ask something back. Be a person, not an interviewer. No name prefix.`}
         ],
         max_tokens:60,
         temperature:0.95,
@@ -2125,7 +2132,7 @@ function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 
 async function seedDefaultRooms(){
-  const rooms=buildDefaultRooms();
+  const rooms=buildDefaultChars();
   const snap=await window._get(window._ref(window._db,'rooms'));
   const existing=snap.exists()?snap.val():{};
   const key=localStorage.getItem('venice_api_key')||'';
